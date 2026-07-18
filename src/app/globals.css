@@ -1,0 +1,315 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-2: var(--brand-2);
+  --color-canvas: var(--canvas);
+  --color-canvas-dot: var(--canvas-dot);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: oklch(0.975 0.004 275);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(0.995 0.002 275);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(0.995 0.002 275);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.95 0.004 275);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.955 0.004 275);
+  --muted-foreground: oklch(0.47 0.008 275);
+  --accent: oklch(0.945 0.005 275);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.87 0.005 275);
+  --input: oklch(0.87 0.005 275);
+  --ring: oklch(0.65 0.01 275);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.96 0.004 275);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.94 0.005 275);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.87 0.005 275);
+  --sidebar-ring: oklch(0.65 0.01 275);
+  --brand: oklch(0.55 0.22 24);
+  --brand-foreground: oklch(0.985 0 0);
+  --brand-2: oklch(0.68 0.17 200);
+  --canvas: oklch(0.965 0.004 275);
+  --canvas-dot: oklch(0.82 0.008 275);
+  --glass-highlight: oklch(1 0 0 / 65%);
+  --glass-shadow: oklch(0.2 0.02 275 / 20%);
+  --glass-tint: oklch(0.99 0.002 275 / 78%);
+  --glass-tint-strong: oklch(0.995 0.002 275 / 94%);
+  --glass-edge: oklch(0 0 0 / 8%);
+  --glass-spotlight: oklch(1 0 0 / 65%);
+  --ambient-a: 14%;
+  --ambient-b: 12%;
+  --ambient-c: 9%;
+  --metal-from: oklch(0.99 0.002 275);
+  --metal-via: oklch(0.9 0.006 275);
+  --metal-to: oklch(0.965 0.003 275);
+  --metal-border: oklch(0 0 0 / 12%);
+  --metal-border-hover: oklch(0 0 0 / 22%);
+  --metal-shadow: oklch(0.2 0.02 275 / 22%);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+  --brand: oklch(0.66 0.21 24);
+  --brand-foreground: oklch(0.145 0 0);
+  --brand-2: oklch(0.75 0.14 200);
+  --canvas: oklch(0.16 0.006 275);
+  --canvas-dot: oklch(0.28 0.01 275);
+  --glass-highlight: oklch(1 0 0 / 12%);
+  --glass-shadow: oklch(0 0 0 / 45%);
+  --glass-tint: oklch(0.22 0.008 275 / 76%);
+  --glass-tint-strong: oklch(0.2 0.008 275 / 92%);
+  --glass-edge: oklch(1 0 0 / 10%);
+  --glass-spotlight: oklch(1 0 0 / 16%);
+  --ambient-a: 9%;
+  --ambient-b: 8%;
+  --ambient-c: 6%;
+  --metal-from: oklch(0.14 0.002 275);
+  --metal-via: oklch(0.19 0.005 275);
+  --metal-to: oklch(0.1 0.002 275);
+  --metal-border: oklch(1 0 0 / 8%);
+  --metal-border-hover: oklch(1 0 0 / 18%);
+  --metal-shadow: oklch(0 0 0 / 65%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(ellipse 900px 600px at 8% -8%, color-mix(in oklch, var(--brand) var(--ambient-a), transparent), transparent 60%),
+      radial-gradient(ellipse 800px 600px at 108% 12%, color-mix(in oklch, var(--brand-2) var(--ambient-b), transparent), transparent 60%),
+      radial-gradient(ellipse 700px 700px at 50% 118%, color-mix(in oklch, var(--brand) var(--ambient-c), transparent), transparent 60%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+  html {
+    @apply font-sans antialiased;
+    color-scheme: dark;
+  }
+  html.light {
+    color-scheme: light;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--brand) 35%, transparent);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}
+
+@layer utilities {
+  .react-flow__attribution {
+    display: none;
+  }
+
+  /* ---- Liquid glass system -------------------------------------------
+     Solid gradient tint + blur, a refracted edge (layered inset shadows),
+     and — on .glass-interactive — a cursor-reactive highlight (::after)
+     driven by --mx/--my set from JS. On engines that understand an SVG
+     filter reference inside backdrop-filter (Chromium today), .glass-distort
+     layers in an actual displacement map for real lensing instead of a
+     flat blur. No directional sheen streak — flat tint only. */
+
+  /* No position here on purpose — Sheet/Dialog need `fixed` (a Tailwind
+     class in the same cascade layer) to win untouched. Consumers that
+     don't already have their own position value should add `relative`
+     alongside this class explicitly. */
+  .glass,
+  .glass-strong,
+  .glass-thin {
+    isolation: isolate;
+    background: var(--glass-tint);
+    backdrop-filter: blur(24px) saturate(1.7);
+    -webkit-backdrop-filter: blur(24px) saturate(1.7);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-highlight),
+      inset 0 0 0 1px var(--glass-edge),
+      inset 0 -12px 24px -20px var(--glass-shadow),
+      0 8px 30px -14px var(--glass-shadow);
+  }
+
+  .glass-strong {
+    background: var(--glass-tint-strong);
+    backdrop-filter: blur(28px) saturate(1.8);
+    -webkit-backdrop-filter: blur(28px) saturate(1.8);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-highlight),
+      inset 0 0 0 1px var(--glass-edge),
+      0 16px 50px -20px var(--glass-shadow);
+  }
+
+  .glass-thin {
+    backdrop-filter: blur(12px) saturate(1.6);
+    -webkit-backdrop-filter: blur(12px) saturate(1.6);
+    box-shadow: none;
+  }
+
+  /* Without this, static in-flow content can paint before the
+     absolutely-positioned sheen/spotlight pseudo-elements in the browser's
+     stacking order despite them being z-index:0 — lifting direct children
+     to z-index:1 guarantees real content always renders above the glass
+     effects layer. */
+  .glass > *,
+  .glass-strong > *,
+  .glass-thin > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  @supports (backdrop-filter: url(#liquid-distortion)) {
+    .glass-distort {
+      backdrop-filter: url(#liquid-distortion) blur(20px) saturate(1.8);
+      -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    }
+  }
+
+  .glass-interactive::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    background: radial-gradient(
+      280px circle at var(--mx, 50%) var(--my, 50%),
+      var(--glass-spotlight),
+      transparent 70%
+    );
+    mix-blend-mode: overlay;
+  }
+
+  .glass-interactive:hover::after,
+  .glass-interactive:focus-within::after {
+    opacity: 1;
+  }
+
+  .glass-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Solid metallic surface — brushed-aluminum in light, graphite/black in
+     dark. No blur, no transparency; a diagonal gradient plus a hover lift
+     for depth instead. */
+  .metal {
+    position: relative;
+    background: linear-gradient(
+      155deg,
+      var(--metal-from),
+      var(--metal-via) 55%,
+      var(--metal-to)
+    );
+    border: 1px solid var(--metal-border);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-highlight),
+      0 10px 26px -18px var(--metal-shadow);
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .metal:hover {
+    border-color: var(--metal-border-hover);
+    box-shadow:
+      inset 0 1px 0 0 var(--glass-highlight),
+      0 14px 32px -16px var(--metal-shadow);
+    transform: translateY(-1px);
+  }
+}
