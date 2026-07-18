@@ -23,6 +23,7 @@ import { LineHeader } from "@/components/canvas/line-header";
 import { getLineStats } from "@/lib/progress";
 import { parseLocalDate } from "@/lib/date";
 import { DatePickerField } from "@/components/shared/date-picker-field";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { LearningNode } from "@/lib/types";
 
 function dayLabel(iso: string | null) {
@@ -54,6 +55,7 @@ function DayCard({
   const removeChecklistItem = useLinerStore((s) => s.removeChecklistItem);
 
   const [draft, setDraft] = useState("");
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const colors = getLineColorClasses(color);
   const progress = getNodeProgress(nodes, node.id);
   const today = isToday(
@@ -66,119 +68,126 @@ function DayCard({
     progress < 100;
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, height: 0 }}
-      className={cn(
-        "rounded-xl border bg-card p-4",
-        selected
-          ? "border-transparent ring-2 ring-brand"
-          : today
-            ? cn("border-transparent ring-2", colors.ring)
-            : "border-border",
-      )}
-    >
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-1 items-start gap-2">
-          {selectMode && (
-            <Checkbox
-              checked={selected}
-              onCheckedChange={onToggleSelect}
-              aria-label="Select this block"
-              className="mt-0.5 shrink-0"
-            />
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center gap-2">
-              <span
-                className={cn(
-                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                  today
-                    ? cn(colors.bgSoft, colors.text)
-                    : overdue
-                      ? "bg-rose-500/10 text-rose-500"
-                      : "bg-muted text-muted-foreground",
-                )}
-              >
-                {dayLabel(node.deadline)}
-              </span>
-              {overdue && (
-                <span className="text-[10px] font-medium text-rose-500">
-                  Missed
+    <>
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, height: 0 }}
+        className={cn(
+          "rounded-xl border bg-card p-4",
+          selected
+            ? "border-transparent ring-2 ring-brand"
+            : today
+              ? cn("border-transparent ring-2", colors.ring)
+              : "border-border",
+        )}
+      >
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            {selectMode && (
+              <Checkbox
+                checked={selected}
+                onCheckedChange={onToggleSelect}
+                aria-label="Select this block"
+                className="mt-0.5 shrink-0"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex items-center gap-2">
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                    today
+                      ? cn(colors.bgSoft, colors.text)
+                      : overdue
+                        ? "bg-rose-500/10 text-rose-500"
+                        : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {dayLabel(node.deadline)}
                 </span>
-              )}
+                {overdue && (
+                  <span className="text-[10px] font-medium text-rose-500">
+                    Missed
+                  </span>
+                )}
+              </div>
+              <input
+                value={node.title}
+                onChange={(e) => updateNode(node.id, { title: e.target.value })}
+                placeholder="Add a note for this day..."
+                className="w-full truncate bg-transparent text-sm font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground"
+              />
             </div>
-            <input
-              value={node.title}
-              onChange={(e) => updateNode(node.id, { title: e.target.value })}
-              placeholder="Add a note for this day..."
-              className="w-full truncate bg-transparent text-sm font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground"
+          </div>
+          <button
+            onClick={() => setConfirmDeleteOpen(true)}
+            className="text-muted-foreground hover:text-rose-500"
+          >
+            <Trash2 className="size-3.5" />
+          </button>
+        </div>
+
+        <Progress value={progress} className="mb-3 h-1.5" />
+
+        <div className="space-y-1.5">
+          <AnimatePresence initial={false}>
+            {node.checklist.map((item) => (
+              <motion.div
+                key={item.id}
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, height: 0 }}
+                className="group flex items-center gap-2"
+              >
+                <Checkbox
+                  checked={item.done}
+                  onCheckedChange={() => toggleChecklistItem(node.id, item.id)}
+                />
+                <span
+                  className={cn(
+                    "flex-1 text-sm",
+                    item.done && "text-muted-foreground line-through",
+                  )}
+                >
+                  {item.text}
+                </span>
+                <button
+                  className="opacity-0 group-hover:opacity-100"
+                  onClick={() => removeChecklistItem(node.id, item.id)}
+                >
+                  <X className="size-3 text-muted-foreground" />
+                </button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          <div className="flex items-center gap-2">
+            <Plus className="size-3.5 text-muted-foreground" />
+            <Input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && draft.trim()) {
+                  addChecklistItem(node.id, draft);
+                  setDraft("");
+                }
+              }}
+              placeholder="Add task..."
+              className="h-7 border-none px-0 text-sm shadow-none focus-visible:ring-0"
             />
           </div>
         </div>
-        <button
-          onClick={() => {
-            if (confirm(`Delete ${dayLabel(node.deadline)}?`)) deleteNode(node.id);
-          }}
-          className="text-muted-foreground hover:text-rose-500"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      </div>
-
-      <Progress value={progress} className="mb-3 h-1.5" />
-
-      <div className="space-y-1.5">
-        <AnimatePresence initial={false}>
-          {node.checklist.map((item) => (
-            <motion.div
-              key={item.id}
-              layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, height: 0 }}
-              className="group flex items-center gap-2"
-            >
-              <Checkbox
-                checked={item.done}
-                onCheckedChange={() => toggleChecklistItem(node.id, item.id)}
-              />
-              <span
-                className={cn(
-                  "flex-1 text-sm",
-                  item.done && "text-muted-foreground line-through",
-                )}
-              >
-                {item.text}
-              </span>
-              <button
-                className="opacity-0 group-hover:opacity-100"
-                onClick={() => removeChecklistItem(node.id, item.id)}
-              >
-                <X className="size-3 text-muted-foreground" />
-              </button>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        <div className="flex items-center gap-2">
-          <Plus className="size-3.5 text-muted-foreground" />
-          <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && draft.trim()) {
-                addChecklistItem(node.id, draft);
-                setDraft("");
-              }
-            }}
-            placeholder="Add task..."
-            className="h-7 border-none px-0 text-sm shadow-none focus-visible:ring-0"
-          />
-        </div>
-      </div>
-    </motion.div>
+      </motion.div>
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        title={`Delete ${dayLabel(node.deadline)}?`}
+        description="This can't be undone."
+        onConfirm={() => deleteNode(node.id)}
+      />
+    </>
   );
 }
 
@@ -190,6 +199,7 @@ export function ActivityView({ lineId }: { lineId: string }) {
   const [customDate, setCustomDate] = useState("");
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulkDeleteOpen, setConfirmBulkDeleteOpen] = useState(false);
 
   if (!line) return null;
 
@@ -208,11 +218,6 @@ export function ActivityView({ lineId }: { lineId: string }) {
   };
 
   const deleteSelected = () => {
-    if (selectedIds.size === 0) return;
-    const count = selectedIds.size;
-    if (!confirm(`Delete ${count} selected block${count === 1 ? "" : "s"}? This can't be undone.`)) {
-      return;
-    }
     selectedIds.forEach((id) => deleteNode(id));
     exitSelectMode();
   };
@@ -342,7 +347,7 @@ export function ActivityView({ lineId }: { lineId: string }) {
                       variant="destructive"
                       className="gap-1.5"
                       disabled={selectedIds.size === 0}
-                      onClick={deleteSelected}
+                      onClick={() => setConfirmBulkDeleteOpen(true)}
                     >
                       <Trash2 className="size-3.5" />
                       Delete selected
@@ -392,6 +397,13 @@ export function ActivityView({ lineId }: { lineId: string }) {
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmBulkDeleteOpen}
+        onOpenChange={setConfirmBulkDeleteOpen}
+        title={`Delete ${selectedIds.size} selected block${selectedIds.size === 1 ? "" : "s"}?`}
+        description="This can't be undone."
+        onConfirm={deleteSelected}
+      />
     </div>
   );
 }

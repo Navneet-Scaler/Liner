@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
@@ -30,6 +31,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { DataBackupMenu } from "./data-backup-menu";
 import { LineIcon } from "@/components/shared/line-icon";
 import { IconTooltip } from "@/components/shared/icon-tooltip";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useAuthStore, getDisplayName } from "@/store/auth-store";
 import { supabase } from "@/lib/supabase/client";
 
@@ -43,6 +45,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const togglePinLine = useLinerStore((s) => s.togglePinLine);
   const toggleArchiveLine = useLinerStore((s) => s.toggleArchiveLine);
   const deleteLine = useLinerStore((s) => s.deleteLine);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
   const visibleLines = lineOrder
     .map((id) => lines[id])
@@ -139,11 +142,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
-              onClick={() => {
-                if (confirm(`Delete "${line.title}"? This can't be undone.`)) {
-                  deleteLine(line.id);
-                }
-              }}
+              onClick={() => setDeleteTarget({ id: line.id, title: line.title })}
             >
               <Trash2 className="size-3.5" />
               Delete
@@ -264,6 +263,17 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title={`Delete "${deleteTarget?.title}"?`}
+        description="This can't be undone."
+        onConfirm={() => {
+          if (deleteTarget) deleteLine(deleteTarget.id);
+        }}
+      />
     </div>
   );
 }

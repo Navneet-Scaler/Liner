@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { format } from "date-fns";
 import { Download, Upload, DatabaseBackup } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useLinerStore } from "@/store/liner-store";
 import { IconTooltip } from "@/components/shared/icon-tooltip";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 
 export function DataBackupMenu() {
   const exportData = useLinerStore((s) => s.exportData);
   const importData = useLinerStore((s) => s.importData);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingImport, setPendingImport] = useState<unknown>(null);
 
   const handleExport = () => {
     const data = exportData();
@@ -41,19 +43,17 @@ export function DataBackupMenu() {
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
-      if (
-        !confirm(
-          "This replaces everything currently in the app with the backup file. This can't be undone. Continue?",
-        )
-      ) {
-        return;
-      }
-      const ok = importData(parsed);
-      if (!ok) {
-        alert("That file doesn't look like a valid Liner backup.");
-      }
+      setPendingImport(parsed);
     } catch {
       alert("Couldn't read that file. Make sure it's a valid JSON backup.");
+    }
+  };
+
+  const confirmImport = () => {
+    if (pendingImport === null) return;
+    const ok = importData(pendingImport);
+    if (!ok) {
+      alert("That file doesn't look like a valid Liner backup.");
     }
   };
 
@@ -91,6 +91,16 @@ export function DataBackupMenu() {
         accept="application/json"
         className="hidden"
         onChange={handleFileChange}
+      />
+      <ConfirmDialog
+        open={pendingImport !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingImport(null);
+        }}
+        title="Replace everything with this backup?"
+        description="This replaces everything currently in the app with the backup file. This can't be undone."
+        confirmLabel="Import"
+        onConfirm={confirmImport}
       />
     </>
   );

@@ -36,6 +36,7 @@ import { STATUS_LABELS } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 import { DatePickerField } from "@/components/shared/date-picker-field";
 import { IconTooltip } from "@/components/shared/icon-tooltip";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import type { Priority, Difficulty, NodeStatus, PlanBucket } from "@/lib/types";
 
 function Field({
@@ -76,6 +77,7 @@ export function NodeDetailSheet() {
   const [resourceUrl, setResourceUrl] = useState("");
   const [scheduleStart, setScheduleStart] = useState<string | null>(null);
   const [scheduleEnd, setScheduleEnd] = useState<string | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const open = Boolean(selectedNodeId && node);
 
@@ -93,6 +95,7 @@ export function NodeDetailSheet() {
   }
 
   return (
+    <>
     <Sheet
       open={open}
       onOpenChange={(next) => {
@@ -140,11 +143,7 @@ export function NodeDetailSheet() {
                 size="icon"
                 className="size-7 text-muted-foreground hover:text-rose-500"
                 aria-label="Delete"
-                onClick={() => {
-                  if (confirm(`Delete "${node.title}" and all its sub-topics?`)) {
-                    deleteNode(node.id);
-                  }
-                }}
+                onClick={() => setConfirmDeleteOpen(true)}
               >
                 <Trash2 className="size-3.5" />
               </Button>
@@ -495,5 +494,13 @@ export function NodeDetailSheet() {
         </div>
       </SheetContent>
     </Sheet>
+    <ConfirmDialog
+      open={confirmDeleteOpen}
+      onOpenChange={setConfirmDeleteOpen}
+      title={`Delete "${node.title}" and all its sub-topics?`}
+      description="This can't be undone."
+      onConfirm={() => deleteNode(node.id)}
+    />
+    </>
   );
 }
