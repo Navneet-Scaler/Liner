@@ -4,6 +4,8 @@ A visual learning and progress roadmap builder. Break a subject down into
 chapters and topics on an interactive canvas, track recurring daily practice
 in an activity tracker, and follow overall progress from a single dashboard.
 
+**Live demo:** [liner-xi.vercel.app](https://liner-xi.vercel.app/)
+
 Everything runs client-side — there is no backend or account system. Your
 data is stored in the browser via `localStorage`, with built-in JSON
 export/import for backups.
@@ -56,9 +58,9 @@ npm run lint    # lint the codebase
 
 ## Deployment
 
-This is a standard Next.js app with no server-side dependencies, so it
-deploys as-is to [Vercel](https://vercel.com) or any platform that supports
-Next.js — no environment variables or database setup required.
+Deployed on [Vercel](https://vercel.com) at [liner-xi.vercel.app](https://liner-xi.vercel.app/).
+It's a standard Next.js app with no server-side dependencies, so it deploys
+as-is — no environment variables or database setup required.
 
 ## License
 
