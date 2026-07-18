@@ -10,9 +10,9 @@ import {
   Pin,
   Archive,
   Trash2,
-  Sparkles,
   LogOut,
 } from "lucide-react";
+import { LinerLogo } from "@/components/shared/liner-logo";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -159,7 +159,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <div className="flex h-full flex-col text-sidebar-foreground">
       <div className="flex items-center gap-2 px-4 py-4">
         <div className="flex size-7 items-center justify-center rounded-md bg-brand text-brand-foreground">
-          <Sparkles className="size-4" />
+          <LinerLogo className="size-4" />
         </div>
         <span className="font-semibold tracking-tight">Liner</span>
       </div>

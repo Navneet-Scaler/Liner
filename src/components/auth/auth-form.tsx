@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Loader2 } from "lucide-react";
+import { MailCheck, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LinerLogo } from "@/components/shared/liner-logo";
 
 /** Supabase's raw auth error messages aren't great to show directly — map
  * the common ones to something a user can actually act on. */
@@ -85,7 +86,7 @@ export function AuthForm() {
     return (
       <div className="glass w-full max-w-sm rounded-2xl border border-border/60 p-6 text-center">
         <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-2xl bg-brand/10">
-          <Sparkles className="size-5 text-brand" />
+          <MailCheck className="size-5 text-brand" />
         </div>
         <p className="font-medium">Check your email</p>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -110,7 +111,7 @@ export function AuthForm() {
     <div className="glass w-full max-w-sm rounded-2xl border border-border/60 p-6">
       <div className="mb-6 flex flex-col items-center text-center">
         <div className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
-          <Sparkles className="size-5" />
+          <LinerLogo className="size-5" />
         </div>
         <h1 className="text-lg font-semibold">Liner</h1>
         <p className="text-sm text-muted-foreground">

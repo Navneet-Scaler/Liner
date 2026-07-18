@@ -1,8 +1,9 @@
 "use client";
 
-import { Menu, Sparkles } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUiStore } from "@/store/ui-store";
+import { LinerLogo } from "@/components/shared/liner-logo";
 
 /** Persistent mobile app bar: hamburger + brand. The active view (Dashboard,
  * roadmap, activity tracker) shows its own title/stats below this, so this
@@ -23,7 +24,7 @@ export function MobileTopBar() {
       </Button>
       <div className="flex items-center gap-1.5">
         <div className="flex size-6 items-center justify-center rounded-md bg-brand text-brand-foreground">
-          <Sparkles className="size-3.5" />
+          <LinerLogo className="size-3.5" />
         </div>
         <span className="text-sm font-semibold tracking-tight">Liner</span>
       </div>

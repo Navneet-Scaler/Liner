@@ -17,7 +17,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { motion } from "framer-motion";
-import { FileText, LayoutGrid, Plus, Sparkles } from "lucide-react";
+import { FileText, LayoutGrid, Plus, Waypoints } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLinerStore } from "@/store/liner-store";
 import { getLineColorClasses } from "@/lib/colors";
@@ -146,7 +146,7 @@ function CanvasInner({ lineId }: { lineId: string }) {
             <div
               className={`flex size-14 items-center justify-center rounded-2xl ${colors.bgSoft}`}
             >
-              <Sparkles className={`size-6 ${colors.text}`} />
+              <Waypoints className={`size-6 ${colors.text}`} />
             </div>
             <div>
               <p className="font-medium">This roadmap is empty</p>
