@@ -167,6 +167,23 @@ export function ActivityView({ lineId }: { lineId: string }) {
       return a.deadline.localeCompare(b.deadline);
     });
 
+  // Cards sharing a date are grouped under one heading and stacked
+  // vertically, instead of flowing side-by-side with other dates. `days` is
+  // already date-sorted above, and Map preserves insertion order, so the
+  // groups come out in the same order.
+  const dayGroups: { key: string; label: string; items: LearningNode[] }[] = [];
+  const groupIndex = new Map<string, number>();
+  for (const day of days) {
+    const key = day.deadline ?? "__no_date__";
+    let idx = groupIndex.get(key);
+    if (idx === undefined) {
+      idx = dayGroups.length;
+      groupIndex.set(key, idx);
+      dayGroups.push({ key, label: dayLabel(day.deadline), items: [] });
+    }
+    dayGroups[idx].items.push(day);
+  }
+
   const { progress, total, completed } = getLineStats(line, nodes);
 
   // Multiple blocks for the same date (even several "Today" cards) are
@@ -256,12 +273,21 @@ export function ActivityView({ lineId }: { lineId: string }) {
                 </Button>
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <AnimatePresence initial={false}>
-                {days.map((day) => (
-                  <DayCard key={day.id} node={day} color={line.color} />
-                ))}
-              </AnimatePresence>
+            <div className="space-y-6">
+              {dayGroups.map((group) => (
+                <div key={group.key}>
+                  <h3 className="mb-2 text-sm font-medium text-muted-foreground">
+                    {group.label}
+                  </h3>
+                  <div className="flex flex-col gap-3">
+                    <AnimatePresence initial={false}>
+                      {group.items.map((day) => (
+                        <DayCard key={day.id} node={day} color={line.color} />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              ))}
             </div>
           </>
         )}
