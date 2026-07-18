@@ -273,9 +273,9 @@ export function ActivityView({ lineId }: { lineId: string }) {
                 </Button>
               </div>
             </div>
-            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex items-start gap-4 overflow-x-auto pb-2">
               {dayGroups.map((group) => (
-                <div key={group.key}>
+                <div key={group.key} className="w-72 shrink-0 sm:w-80">
                   <h3 className="mb-2 text-sm font-medium text-muted-foreground">
                     {group.label}
                   </h3>
