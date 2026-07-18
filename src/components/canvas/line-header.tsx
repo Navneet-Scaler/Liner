@@ -1,12 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, ListTree } from "lucide-react";
+import { CheckCircle2, ListTree, NotebookPen } from "lucide-react";
 import type { LearningLine } from "@/lib/types";
 import { getLineColorClasses } from "@/lib/colors";
 import { useLinerStore } from "@/store/liner-store";
 import { Progress } from "@/components/ui/progress";
 import { LineIcon } from "@/components/shared/line-icon";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { IconTooltip } from "@/components/shared/icon-tooltip";
+import { MarqueeText } from "@/components/shared/marquee-text";
 
 export function LineHeader({
   line,
@@ -22,6 +31,8 @@ export function LineHeader({
   const updateLine = useLinerStore((s) => s.updateLine);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(line.title);
+  const [descDraft, setDescDraft] = useState(line.description);
+  const [notesOpen, setNotesOpen] = useState(false);
 
   const colors = getLineColorClasses(line.color);
 
@@ -32,6 +43,12 @@ export function LineHeader({
       updateLine(line.id, { title: trimmed });
     } else {
       setDraft(line.title);
+    }
+  };
+
+  const commitDescription = () => {
+    if (descDraft !== line.description) {
+      updateLine(line.id, { description: descDraft });
     }
   };
 
@@ -67,14 +84,50 @@ export function LineHeader({
             </h1>
           )}
           {line.description && (
-            <p className="hidden truncate text-xs text-muted-foreground sm:block">
-              {line.description}
-            </p>
+            <MarqueeText
+              text={line.description}
+              className="hidden text-xs text-muted-foreground sm:block"
+            />
           )}
         </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+        <Popover
+          open={notesOpen}
+          onOpenChange={(next) => {
+            setNotesOpen(next);
+            if (next) setDescDraft(line.description);
+            else commitDescription();
+          }}
+        >
+          <IconTooltip label="Notes — what this is about">
+            <PopoverTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Notes"
+                  className={`size-8 ${line.description ? colors.text : "text-muted-foreground"}`}
+                >
+                  <NotebookPen className="size-4" />
+                </Button>
+              }
+            />
+          </IconTooltip>
+          <PopoverContent align="start" className="w-64 gap-1.5 p-2.5">
+            <span className="text-xs font-medium text-muted-foreground">
+              What this is about
+            </span>
+            <Textarea
+              value={descDraft ?? ""}
+              onChange={(e) => setDescDraft(e.target.value)}
+              onBlur={commitDescription}
+              placeholder="Add a note on what this line is about..."
+              className="field-sizing-fixed h-32 resize-none overflow-y-auto text-sm"
+            />
+          </PopoverContent>
+        </Popover>
         <div className="hidden items-center gap-1.5 text-xs text-muted-foreground md:flex">
           <ListTree className="size-3.5" />
           {total} {line.type === "activity" ? "task" : "node"}

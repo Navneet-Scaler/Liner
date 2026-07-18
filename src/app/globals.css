@@ -312,4 +312,40 @@
       0 14px 32px -16px var(--metal-shadow);
     transform: translateY(-1px);
   }
+
+  /* Ticker for text that overflows its box: scrolls right-to-left on a
+     loop, pauses on hover so it can be read, resumes on mouse-leave. The
+     track holds the text twice back-to-back and slides exactly one copy's
+     width so the loop is seamless. */
+  .marquee {
+    overflow: hidden;
+    white-space: nowrap;
+    mask-image: linear-gradient(
+      90deg,
+      transparent,
+      black 12px,
+      black calc(100% - 12px),
+      transparent
+    );
+  }
+
+  .marquee-track {
+    display: inline-flex;
+    width: max-content;
+    animation: marquee-scroll linear infinite;
+    animation-duration: var(--marquee-duration, 10s);
+  }
+
+  .marquee:hover .marquee-track {
+    animation-play-state: paused;
+  }
+
+  @keyframes marquee-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
 }

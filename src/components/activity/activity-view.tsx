@@ -3,7 +3,14 @@
 import { useState } from "react";
 import { format, isToday, isTomorrow, isPast, addDays } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Trash2, CalendarDays, CalendarPlus } from "lucide-react";
+import {
+  Plus,
+  X,
+  Trash2,
+  CalendarDays,
+  CalendarPlus,
+  ListChecks,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,7 +33,19 @@ function dayLabel(iso: string | null) {
   return format(date, "EEE, MMM d");
 }
 
-function DayCard({ node, color }: { node: LearningNode; color: string }) {
+function DayCard({
+  node,
+  color,
+  selectMode,
+  selected,
+  onToggleSelect,
+}: {
+  node: LearningNode;
+  color: string;
+  selectMode: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
+}) {
   const nodes = useLinerStore((s) => s.nodes);
   const updateNode = useLinerStore((s) => s.updateNode);
   const deleteNode = useLinerStore((s) => s.deleteNode);
@@ -54,36 +73,50 @@ function DayCard({ node, color }: { node: LearningNode; color: string }) {
       exit={{ opacity: 0, height: 0 }}
       className={cn(
         "rounded-xl border bg-card p-4",
-        today ? cn("border-transparent ring-2", colors.ring) : "border-border",
+        selected
+          ? "border-transparent ring-2 ring-brand"
+          : today
+            ? cn("border-transparent ring-2", colors.ring)
+            : "border-border",
       )}
     >
       <div className="mb-3 flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center gap-2">
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                today
-                  ? cn(colors.bgSoft, colors.text)
-                  : overdue
-                    ? "bg-rose-500/10 text-rose-500"
-                    : "bg-muted text-muted-foreground",
-              )}
-            >
-              {dayLabel(node.deadline)}
-            </span>
-            {overdue && (
-              <span className="text-[10px] font-medium text-rose-500">
-                Missed
+        <div className="flex min-w-0 flex-1 items-start gap-2">
+          {selectMode && (
+            <Checkbox
+              checked={selected}
+              onCheckedChange={onToggleSelect}
+              aria-label="Select this block"
+              className="mt-0.5 shrink-0"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex items-center gap-2">
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  today
+                    ? cn(colors.bgSoft, colors.text)
+                    : overdue
+                      ? "bg-rose-500/10 text-rose-500"
+                      : "bg-muted text-muted-foreground",
+                )}
+              >
+                {dayLabel(node.deadline)}
               </span>
-            )}
+              {overdue && (
+                <span className="text-[10px] font-medium text-rose-500">
+                  Missed
+                </span>
+              )}
+            </div>
+            <input
+              value={node.title}
+              onChange={(e) => updateNode(node.id, { title: e.target.value })}
+              placeholder="Add a note for this day..."
+              className="w-full truncate bg-transparent text-sm font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground"
+            />
           </div>
-          <input
-            value={node.title}
-            onChange={(e) => updateNode(node.id, { title: e.target.value })}
-            placeholder="Add a note for this day..."
-            className="w-full truncate bg-transparent text-sm font-medium outline-none placeholder:font-normal placeholder:text-muted-foreground"
-          />
         </div>
         <button
           onClick={() => {
@@ -153,9 +186,36 @@ export function ActivityView({ lineId }: { lineId: string }) {
   const line = useLinerStore((s) => s.lines[lineId]);
   const nodes = useLinerStore((s) => s.nodes);
   const createNode = useLinerStore((s) => s.createNode);
+  const deleteNode = useLinerStore((s) => s.deleteNode);
   const [customDate, setCustomDate] = useState("");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   if (!line) return null;
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const deleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    const count = selectedIds.size;
+    if (!confirm(`Delete ${count} selected block${count === 1 ? "" : "s"}? This can't be undone.`)) {
+      return;
+    }
+    selectedIds.forEach((id) => deleteNode(id));
+    exitSelectMode();
+  };
 
   const days = line.rootNodeIds
     .map((id) => nodes[id])
@@ -271,8 +331,42 @@ export function ActivityView({ lineId }: { lineId: string }) {
                   Add
                 </Button>
               </div>
+              <div className="ml-auto flex items-center gap-2">
+                {selectMode && (
+                  <>
+                    <span className="text-xs text-muted-foreground">
+                      {selectedIds.size} selected
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="gap-1.5"
+                      disabled={selectedIds.size === 0}
+                      onClick={deleteSelected}
+                    >
+                      <Trash2 className="size-3.5" />
+                      Delete selected
+                    </Button>
+                  </>
+                )}
+                <Button
+                  size="sm"
+                  variant={selectMode ? "secondary" : "outline"}
+                  className="gap-1.5"
+                  onClick={() =>
+                    selectMode ? exitSelectMode() : setSelectMode(true)
+                  }
+                >
+                  {selectMode ? (
+                    <X className="size-3.5" />
+                  ) : (
+                    <ListChecks className="size-3.5" />
+                  )}
+                  {selectMode ? "Cancel" : "Select"}
+                </Button>
+              </div>
             </div>
-            <div className="flex items-start gap-4 overflow-x-auto pb-2">
+            <div className="flex items-start gap-4 overflow-x-auto px-1 pb-2">
               {dayGroups.map((group) => (
                 <div key={group.key} className="w-72 shrink-0 sm:w-80">
                   <h3 className="mb-2 text-sm font-medium text-muted-foreground">
@@ -281,7 +375,14 @@ export function ActivityView({ lineId }: { lineId: string }) {
                   <div className="flex flex-col gap-3">
                     <AnimatePresence initial={false}>
                       {group.items.map((day) => (
-                        <DayCard key={day.id} node={day} color={line.color} />
+                        <DayCard
+                          key={day.id}
+                          node={day}
+                          color={line.color}
+                          selectMode={selectMode}
+                          selected={selectedIds.has(day.id)}
+                          onToggleSelect={() => toggleSelect(day.id)}
+                        />
                       ))}
                     </AnimatePresence>
                   </div>

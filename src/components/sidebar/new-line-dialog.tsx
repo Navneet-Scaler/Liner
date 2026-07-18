@@ -168,6 +168,7 @@ export function NewLineDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
+              className="field-sizing-fixed h-20 resize-none overflow-y-auto"
             />
           </div>
         </div>
