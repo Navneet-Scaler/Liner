@@ -71,7 +71,7 @@ export function QuickAddPopover({
             if (e.key === "Escape") setOpen(false);
           }}
           placeholder={placeholder}
-          className="text-sm"
+          className="field-sizing-fixed h-24 resize-none overflow-y-auto text-sm"
         />
         <div className="mt-2 flex items-center justify-between">
           <p className="text-[11px] text-muted-foreground">

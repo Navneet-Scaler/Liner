@@ -69,7 +69,7 @@ export function OutlineImportDialog({
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={EXAMPLE}
-          className="font-mono text-xs"
+          className="field-sizing-fixed h-72 resize-none overflow-y-auto font-mono text-xs"
         />
 
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

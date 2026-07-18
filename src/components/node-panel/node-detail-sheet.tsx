@@ -325,6 +325,7 @@ export function NodeDetailSheet() {
               onChange={(e) =>
                 updateNode(node.id, { description: e.target.value })
               }
+              className="field-sizing-fixed h-20 resize-none overflow-y-auto"
             />
           </Field>
 
@@ -334,7 +335,7 @@ export function NodeDetailSheet() {
               placeholder="Notes, markdown supported..."
               value={node.notes}
               onChange={(e) => updateNode(node.id, { notes: e.target.value })}
-              className="font-mono text-xs"
+              className="field-sizing-fixed h-40 resize-none overflow-y-auto font-mono text-xs"
             />
           </Field>
 
