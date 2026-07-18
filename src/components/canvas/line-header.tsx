@@ -31,7 +31,7 @@ export function LineHeader({
   const updateLine = useLinerStore((s) => s.updateLine);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(line.title);
-  const [descDraft, setDescDraft] = useState(line.description);
+  const [notesDraft, setNotesDraft] = useState(line.notes);
   const [notesOpen, setNotesOpen] = useState(false);
 
   const colors = getLineColorClasses(line.color);
@@ -46,9 +46,9 @@ export function LineHeader({
     }
   };
 
-  const commitDescription = () => {
-    if (descDraft !== line.description) {
-      updateLine(line.id, { description: descDraft });
+  const commitNotes = () => {
+    if (notesDraft !== line.notes) {
+      updateLine(line.id, { notes: notesDraft });
     }
   };
 
@@ -97,34 +97,34 @@ export function LineHeader({
           open={notesOpen}
           onOpenChange={(next) => {
             setNotesOpen(next);
-            if (next) setDescDraft(line.description);
-            else commitDescription();
+            if (next) setNotesDraft(line.notes);
+            else commitNotes();
           }}
         >
-          <IconTooltip label="Notes — what this is about">
+          <IconTooltip label="Notes">
             <PopoverTrigger
               render={
                 <Button
                   variant="ghost"
                   size="icon"
                   aria-label="Notes"
-                  className={`size-8 ${line.description ? colors.text : "text-muted-foreground"}`}
+                  className={`size-8 ${line.notes ? colors.text : "text-muted-foreground"}`}
                 >
                   <NotebookPen className="size-4" />
                 </Button>
               }
             />
           </IconTooltip>
-          <PopoverContent align="start" className="w-64 gap-1.5 p-2.5">
+          <PopoverContent align="start" className="w-96 gap-1.5 p-2.5">
             <span className="text-xs font-medium text-muted-foreground">
-              What this is about
+              Notes
             </span>
             <Textarea
-              value={descDraft ?? ""}
-              onChange={(e) => setDescDraft(e.target.value)}
-              onBlur={commitDescription}
-              placeholder="Add a note on what this line is about..."
-              className="field-sizing-fixed h-32 resize-none overflow-y-auto text-sm"
+              value={notesDraft ?? ""}
+              onChange={(e) => setNotesDraft(e.target.value)}
+              onBlur={commitNotes}
+              placeholder="Jot down notes for this line..."
+              className="field-sizing-fixed h-48 resize-none overflow-y-auto text-sm"
             />
           </PopoverContent>
         </Popover>

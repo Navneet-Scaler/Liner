@@ -9,6 +9,7 @@ create table if not exists public.lines (
   emoji text not null,
   color text not null,
   description text not null default '',
+  notes text not null default '',
   root_node_ids jsonb not null default '[]',
   pinned boolean not null default false,
   archived boolean not null default false,
@@ -48,6 +49,10 @@ create table if not exists public.nodes (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Safe to re-run on an existing DB: adds the "notes" column (separate from
+-- "description") to lines created before this field existed.
+alter table public.lines add column if not exists notes text not null default '';
 
 alter table public.lines enable row level security;
 alter table public.nodes enable row level security;

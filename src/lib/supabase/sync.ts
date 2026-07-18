@@ -8,6 +8,7 @@ interface LineRow {
   emoji: string;
   color: string;
   description: string;
+  notes: string;
   root_node_ids: string[];
   pinned: boolean;
   archived: boolean;
@@ -55,6 +56,7 @@ function lineToRow(line: LearningLine, userId: string, sortOrder: number) {
     emoji: line.emoji,
     color: line.color,
     description: line.description,
+    notes: line.notes,
     root_node_ids: line.rootNodeIds,
     pinned: line.pinned,
     archived: line.archived,
@@ -72,6 +74,7 @@ function rowToLine(row: LineRow): LearningLine {
     emoji: row.emoji,
     color: row.color,
     description: row.description,
+    notes: row.notes ?? "",
     rootNodeIds: row.root_node_ids ?? [],
     pinned: row.pinned,
     archived: row.archived,

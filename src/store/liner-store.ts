@@ -282,6 +282,7 @@ export const useLinerStore = create<LinerState>()((set, get) => ({
         emoji ?? (type === "activity" ? iconValue("repeat") : iconValue("map")),
       color,
       description: description ?? "",
+      notes: "",
       rootNodeIds: [],
       pinned: false,
       archived: false,

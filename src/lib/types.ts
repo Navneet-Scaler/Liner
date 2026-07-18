@@ -67,6 +67,7 @@ export interface LearningLine {
   emoji: string;
   color: string;
   description: string;
+  notes: string;
   rootNodeIds: string[];
   pinned: boolean;
   archived: boolean;
