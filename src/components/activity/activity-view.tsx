@@ -153,7 +153,6 @@ export function ActivityView({ lineId }: { lineId: string }) {
   const line = useLinerStore((s) => s.lines[lineId]);
   const nodes = useLinerStore((s) => s.nodes);
   const createNode = useLinerStore((s) => s.createNode);
-  const updateNode = useLinerStore((s) => s.updateNode);
   const [customDate, setCustomDate] = useState("");
 
   if (!line) return null;
@@ -194,12 +193,12 @@ export function ActivityView({ lineId }: { lineId: string }) {
     // "Today"/"Tomorrow"/the date, and a hardcoded title like "Today" would
     // go stale (it'd still say "Today" a week later). The title is only for
     // an optional custom label the user types in.
-    const id = createNode({
+    createNode({
       lineId: line.id,
       parentId: null,
       title: "",
+      initial: { deadline: iso },
     });
-    updateNode(id, { deadline: iso });
   };
 
   const addDay = (offsetDays: number) => {

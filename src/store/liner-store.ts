@@ -187,6 +187,7 @@ interface LinerState {
     lineId: string;
     parentId: string | null;
     title: string;
+    initial?: Partial<LearningNode>;
   }) => string;
   createNodes: (input: {
     lineId: string;
@@ -378,22 +379,25 @@ export const useLinerStore = create<LinerState>()((set, get) => ({
 
   setActiveLine: (id) => set({ activeLineId: id, selectedNodeId: null }),
 
-  createNode: ({ lineId, parentId, title }) => {
+  createNode: ({ lineId, parentId, title, initial }) => {
     const id = createId("node");
     const parentSnapshot = parentId ? get().nodes[parentId] : null;
-    const node = emptyNode({
-      id,
-      lineId,
-      parentId,
-      title,
-      inherit: parentSnapshot
-        ? {
-            tags: parentSnapshot.tags,
-            priority: parentSnapshot.priority,
-            difficulty: parentSnapshot.difficulty,
-          }
-        : undefined,
-    });
+    const node: LearningNode = {
+      ...emptyNode({
+        id,
+        lineId,
+        parentId,
+        title,
+        inherit: parentSnapshot
+          ? {
+              tags: parentSnapshot.tags,
+              priority: parentSnapshot.priority,
+              difficulty: parentSnapshot.difficulty,
+            }
+          : undefined,
+      }),
+      ...initial,
+    };
 
     set((state) => {
       const nodes = { ...state.nodes, [id]: node };
