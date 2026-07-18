@@ -273,7 +273,7 @@ export function ActivityView({ lineId }: { lineId: string }) {
                 </Button>
               </div>
             </div>
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {dayGroups.map((group) => (
                 <div key={group.key}>
                   <h3 className="mb-2 text-sm font-medium text-muted-foreground">
