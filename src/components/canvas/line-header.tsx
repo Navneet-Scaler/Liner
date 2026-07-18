@@ -31,6 +31,8 @@ export function LineHeader({
   const updateLine = useLinerStore((s) => s.updateLine);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(line.title);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descDraft, setDescDraft] = useState(line.description);
   const [notesDraft, setNotesDraft] = useState(line.notes);
   const [notesOpen, setNotesOpen] = useState(false);
 
@@ -43,6 +45,14 @@ export function LineHeader({
       updateLine(line.id, { title: trimmed });
     } else {
       setDraft(line.title);
+    }
+  };
+
+  const commitDescriptionEdit = () => {
+    setEditingDescription(false);
+    const trimmed = descDraft.trim();
+    if (trimmed !== line.description) {
+      updateLine(line.id, { description: trimmed });
     }
   };
 
@@ -83,11 +93,41 @@ export function LineHeader({
               {line.title}
             </h1>
           )}
-          {line.description && (
-            <MarqueeText
-              text={line.description}
-              className="hidden text-xs text-muted-foreground sm:block"
+          {editingDescription ? (
+            <input
+              autoFocus
+              value={descDraft}
+              onChange={(e) => setDescDraft(e.target.value)}
+              onBlur={commitDescriptionEdit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitDescriptionEdit();
+                if (e.key === "Escape") {
+                  setDescDraft(line.description);
+                  setEditingDescription(false);
+                }
+              }}
+              placeholder="Add a short description..."
+              className="hidden w-full truncate rounded border border-border bg-transparent px-1 -mx-1 text-xs text-muted-foreground outline-none focus:border-brand sm:block"
             />
+          ) : (
+            <div
+              className="hidden cursor-text sm:block"
+              onClick={() => {
+                setDescDraft(line.description);
+                setEditingDescription(true);
+              }}
+            >
+              {line.description ? (
+                <MarqueeText
+                  text={line.description}
+                  className="text-xs text-muted-foreground"
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground/50">
+                  Add a short description...
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>
