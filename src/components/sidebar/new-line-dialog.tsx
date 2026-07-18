@@ -18,22 +18,23 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useLinerStore } from "@/store/liner-store";
 import { LINE_ICONS, iconValue } from "@/lib/line-icons";
+import { IconTooltip } from "@/components/shared/icon-tooltip";
 import type { LineType } from "@/lib/types";
 
 const ICON_PRESETS = [
-  "map",
-  "brain",
-  "code",
-  "book",
-  "target",
-  "rocket",
-  "graduation",
-  "chart",
-  "flask",
-  "languages",
-  "dumbbell",
-  "repeat",
-].map(iconValue);
+  { key: "map", label: "Roadmap" },
+  { key: "brain", label: "Knowledge" },
+  { key: "code", label: "Programming" },
+  { key: "book", label: "Reading" },
+  { key: "target", label: "Goals" },
+  { key: "rocket", label: "Growth" },
+  { key: "graduation", label: "Academics" },
+  { key: "chart", label: "Progress" },
+  { key: "flask", label: "Science" },
+  { key: "languages", label: "Language" },
+  { key: "dumbbell", label: "Workout" },
+  { key: "repeat", label: "Habit" },
+].map(({ key, label }) => ({ value: iconValue(key), label }));
 
 export function NewLineDialog({
   children,
@@ -43,14 +44,14 @@ export function NewLineDialog({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [type, setType] = useState<LineType>("roadmap");
-  const [emoji, setEmoji] = useState(ICON_PRESETS[0]);
+  const [emoji, setEmoji] = useState(ICON_PRESETS[0].value);
   const [description, setDescription] = useState("");
   const createLine = useLinerStore((s) => s.createLine);
 
   const reset = () => {
     setTitle("");
     setType("roadmap");
-    setEmoji(ICON_PRESETS[0]);
+    setEmoji(ICON_PRESETS[0].value);
     setDescription("");
   };
 
@@ -97,23 +98,25 @@ export function NewLineDialog({
           <div className="space-y-2">
             <Label>Icon</Label>
             <div className="flex flex-wrap gap-1.5">
-              {ICON_PRESETS.map((value) => {
+              {ICON_PRESETS.map(({ value, label }) => {
                 const key = value.slice("icon:".length);
                 const Icon = LINE_ICONS[key];
                 return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setEmoji(value)}
-                    className={cn(
-                      "flex size-8 items-center justify-center rounded-md border transition-colors",
-                      emoji === value
-                        ? "border-brand bg-brand/10 text-brand"
-                        : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
-                    )}
-                  >
-                    <Icon className="size-4" />
-                  </button>
+                  <IconTooltip key={value} label={label}>
+                    <button
+                      type="button"
+                      onClick={() => setEmoji(value)}
+                      aria-label={label}
+                      className={cn(
+                        "flex size-8 items-center justify-center rounded-md border transition-colors",
+                        emoji === value
+                          ? "border-brand bg-brand/10 text-brand"
+                          : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+                      )}
+                    >
+                      <Icon className="size-4" />
+                    </button>
+                  </IconTooltip>
                 );
               })}
             </div>
