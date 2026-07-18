@@ -11,6 +11,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useLinerStore } from "@/store/liner-store";
+import { useAuthStore, getDisplayName } from "@/store/auth-store";
 import { getLineColorClasses } from "@/lib/colors";
 import { getLineStats } from "@/lib/progress";
 import {
@@ -59,6 +60,7 @@ function StatCard({
 }
 
 export function DashboardView() {
+  const displayName = useAuthStore((s) => getDisplayName(s.user));
   const lines = useLinerStore((s) => s.lines);
   const lineOrder = useLinerStore((s) => s.lineOrder);
   const nodes = useLinerStore((s) => s.nodes);
@@ -92,7 +94,7 @@ export function DashboardView() {
           <Layers className="size-7 text-brand" />
         </div>
         <div>
-          <p className="text-lg font-medium">Welcome to Learning Lines</p>
+          <p className="text-lg font-medium">Hi {displayName}, welcome to Liner</p>
           <p className="text-sm text-muted-foreground">
             Create your first Learning Line to start building your roadmap.
           </p>
@@ -109,9 +111,11 @@ export function DashboardView() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-6xl space-y-6 p-6">
+      <div className="mx-auto max-w-6xl space-y-5 p-4 sm:space-y-6 sm:p-6">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            Hi, {displayName}
+          </h1>
           <p className="text-sm text-muted-foreground">
             {format(new Date(), "EEEE, MMMM d, yyyy")}
           </p>

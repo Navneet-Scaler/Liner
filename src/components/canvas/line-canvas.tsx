@@ -154,7 +154,7 @@ function CanvasInner({ lineId }: { lineId: string }) {
                 Add your first topic to start mapping it out.
               </p>
             </div>
-            <div className="mt-1 flex items-center gap-2">
+            <div className="mt-1 flex flex-wrap items-center justify-center gap-2 px-4">
               <Button
                 size="sm"
                 className="gap-1.5"
@@ -228,11 +228,11 @@ function CanvasInner({ lineId }: { lineId: string }) {
               nodeColor={() => `var(--brand)`}
             />
 
-            <Panel position="top-right" className="!m-3">
+            <Panel position="top-right" className="!m-2 sm:!m-3">
               <motion.div
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass flex gap-1.5 rounded-xl border border-border/60 p-1.5"
+                className="glass flex gap-1 rounded-xl border border-border/60 p-1.5 sm:gap-1.5"
               >
                 <Button
                   size="sm"
@@ -241,13 +241,13 @@ function CanvasInner({ lineId }: { lineId: string }) {
                   onClick={runAutoArrange}
                 >
                   <LayoutGrid className="size-3.5" />
-                  Auto-arrange
+                  <span className="hidden sm:inline">Auto-arrange</span>
                 </Button>
                 <OutlineImportDialog
                   trigger={
                     <Button size="sm" variant="secondary" className="gap-1.5 bg-secondary/70 shadow-sm hover:bg-secondary">
                       <FileText className="size-3.5" />
-                      Import outline
+                      <span className="hidden sm:inline">Import outline</span>
                     </Button>
                   }
                   onImport={(outline) => {
@@ -272,7 +272,7 @@ function CanvasInner({ lineId }: { lineId: string }) {
                   trigger={
                     <Button size="sm" className="gap-1.5 shadow-sm">
                       <Plus className="size-3.5" />
-                      Add topic
+                      <span className="hidden sm:inline">Add topic</span>
                     </Button>
                   }
                 />

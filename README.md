@@ -1,4 +1,4 @@
-# Learning Lines
+# Liner
 
 A visual learning and progress roadmap builder. Break a subject down into
 chapters and topics on an interactive canvas, track recurring daily practice
@@ -6,9 +6,9 @@ in an activity tracker, and follow overall progress from a single dashboard.
 
 **Live demo:** [liner-xi.vercel.app](https://liner-xi.vercel.app/)
 
-Everything runs client-side — there is no backend or account system. Your
-data is stored in the browser via `localStorage`, with built-in JSON
-export/import for backups.
+Accounts are backed by [Supabase](https://supabase.com) (Postgres + email
+auth) — sign up with an email and password and your data syncs across
+devices. A JSON export/import feature is still built in for manual backups.
 
 ## Features
 
@@ -25,15 +25,17 @@ export/import for backups.
   daily problem-solving habit), with per-day checklists and streak tracking.
 - **Dashboard** — today's plan, upcoming deadlines, overdue items, a weekly
   activity chart, and a GitHub-style completion heatmap.
-- **Backup & restore** — export all data as a JSON file and re-import it,
-  since there's no server-side persistence.
+- **Accounts** — email/password auth via Supabase; each account's data is
+  isolated with row-level security.
+- **Backup & restore** — export all data as a JSON file and re-import it.
 - **Light/dark themes**, with an interactive glass UI.
 
 ## Tech stack
 
 - [Next.js](https://nextjs.org) (App Router) + [React](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
 - [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) (Base UI primitives)
-- [Zustand](https://zustand-demo.pmnd.rs) for state management, persisted to `localStorage`
+- [Supabase](https://supabase.com) for the database and email/password auth
+- [Zustand](https://zustand-demo.pmnd.rs) for client-side state, synced to Supabase
 - [@xyflow/react](https://reactflow.dev) for the roadmap canvas
 - [Framer Motion](https://www.framer.com/motion) for animation
 - [Recharts](https://recharts.org) for the dashboard charts
@@ -41,12 +43,20 @@ export/import for backups.
 
 ## Getting started
 
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In the Supabase SQL Editor, run `supabase/schema.sql` from this repo once
+   — it creates the `lines`/`nodes` tables and row-level security policies.
+3. Copy `.env.example` to `.env.local` and fill in your project's URL and
+   anon key (Project Settings → API in the Supabase dashboard).
+4. Install and run:
+
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to use the app.
+Open [http://localhost:3000](http://localhost:3000) — you'll land on the
+login page; sign up with an email and password to get started.
 
 ### Other scripts
 
@@ -59,8 +69,8 @@ npm run lint    # lint the codebase
 ## Deployment
 
 Deployed on [Vercel](https://vercel.com) at [liner-xi.vercel.app](https://liner-xi.vercel.app/).
-It's a standard Next.js app with no server-side dependencies, so it deploys
-as-is — no environment variables or database setup required.
+Add the same two env vars from `.env.example` to the Vercel project settings
+(Project → Settings → Environment Variables) and redeploy.
 
 ## License
 

@@ -14,7 +14,7 @@ function downloadEmergencyBackup() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "learning-lines-emergency-backup.json";
+    a.download = "liner-emergency-backup.json";
     a.click();
     URL.revokeObjectURL(url);
   } catch {
@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("Learning Lines crashed:", error, info.componentStack);
+    console.error("Liner crashed:", error, info.componentStack);
   }
 
   render() {

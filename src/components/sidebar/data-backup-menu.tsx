@@ -26,7 +26,7 @@ export function DataBackupMenu() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `learning-lines-backup-${format(new Date(), "yyyy-MM-dd")}.json`;
+    a.download = `liner-backup-${format(new Date(), "yyyy-MM-dd")}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -50,7 +50,7 @@ export function DataBackupMenu() {
       }
       const ok = importData(parsed);
       if (!ok) {
-        alert("That file doesn't look like a valid Learning Lines backup.");
+        alert("That file doesn't look like a valid Liner backup.");
       }
     } catch {
       alert("Couldn't read that file. Make sure it's a valid JSON backup.");
