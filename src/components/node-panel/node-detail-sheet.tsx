@@ -35,6 +35,7 @@ import { getNodeProgress } from "@/lib/progress";
 import { STATUS_LABELS } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 import { DatePickerField } from "@/components/shared/date-picker-field";
+import { IconTooltip } from "@/components/shared/icon-tooltip";
 import type { Priority, Difficulty, NodeStatus, PlanBucket } from "@/lib/types";
 
 function Field({
@@ -116,32 +117,38 @@ export function NodeDetailSheet() {
             <Badge variant="secondary" className="font-normal">
               {progress}% complete
             </Badge>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7"
-              onClick={() => toggleNodePinned(node.id)}
-            >
-              <Pin
-                className={cn(
-                  "size-3.5",
-                  node.pinned && "fill-current text-amber-500",
-                )}
-              />
-            </Button>
+            <IconTooltip label={node.pinned ? "Unpin" : "Pin"}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                aria-label={node.pinned ? "Unpin" : "Pin"}
+                onClick={() => toggleNodePinned(node.id)}
+              >
+                <Pin
+                  className={cn(
+                    "size-3.5",
+                    node.pinned && "fill-current text-amber-500",
+                  )}
+                />
+              </Button>
+            </IconTooltip>
             <div className="flex-1" />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7 text-muted-foreground hover:text-rose-500"
-              onClick={() => {
-                if (confirm(`Delete "${node.title}" and all its sub-topics?`)) {
-                  deleteNode(node.id);
-                }
-              }}
-            >
-              <Trash2 className="size-3.5" />
-            </Button>
+            <IconTooltip label="Delete">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground hover:text-rose-500"
+                aria-label="Delete"
+                onClick={() => {
+                  if (confirm(`Delete "${node.title}" and all its sub-topics?`)) {
+                    deleteNode(node.id);
+                  }
+                }}
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            </IconTooltip>
           </div>
         </SheetHeader>
 

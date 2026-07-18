@@ -29,6 +29,7 @@ import { NewLineDialog } from "./new-line-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DataBackupMenu } from "./data-backup-menu";
 import { LineIcon } from "@/components/shared/line-icon";
+import { IconTooltip } from "@/components/shared/icon-tooltip";
 
 export function AppSidebar() {
   const lines = useLinerStore((s) => s.lines);
@@ -100,18 +101,21 @@ export function AppSidebar() {
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => e.stopPropagation()}
-                className="size-6 shrink-0 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
-              >
-                <MoreHorizontal className="size-3.5" />
-              </Button>
-            }
-          />
+          <IconTooltip label="More options">
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => e.stopPropagation()}
+                  aria-label="More options"
+                  className="size-6 shrink-0 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+                >
+                  <MoreHorizontal className="size-3.5" />
+                </Button>
+              }
+            />
+          </IconTooltip>
           <DropdownMenuContent
             align="end"
             onClick={(e) => e.stopPropagation()}

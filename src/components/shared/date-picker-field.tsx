@@ -45,11 +45,14 @@ export function DatePickerField({
             {date && (
               <X
                 className="size-3 shrink-0 opacity-60 hover:opacity-100"
+                aria-label="Clear date"
                 onClick={(e) => {
                   e.stopPropagation();
                   onChange(null);
                 }}
-              />
+              >
+                <title>Clear date</title>
+              </X>
             )}
           </Button>
         }

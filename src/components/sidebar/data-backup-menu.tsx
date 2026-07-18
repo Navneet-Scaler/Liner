@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useLinerStore } from "@/store/liner-store";
+import { IconTooltip } from "@/components/shared/icon-tooltip";
 
 export function DataBackupMenu() {
   const exportData = useLinerStore((s) => s.exportData);
@@ -59,18 +60,20 @@ export function DataBackupMenu() {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger
-          render={
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 text-muted-foreground hover:text-foreground"
-              title="Backup & restore"
-            >
-              <DatabaseBackup className="size-4" />
-            </Button>
-          }
-        />
+        <IconTooltip label="Backup & restore">
+          <DropdownMenuTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground hover:text-foreground"
+                aria-label="Backup & restore"
+              >
+                <DatabaseBackup className="size-4" />
+              </Button>
+            }
+          />
+        </IconTooltip>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={handleExport}>
             <Download className="size-3.5" />

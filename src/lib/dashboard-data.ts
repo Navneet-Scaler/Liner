@@ -32,20 +32,44 @@ export function getTodaysTasks(tasks: FlatTask[]): FlatTask[] {
   );
 }
 
-export function getUpcomingDeadlines(tasks: FlatTask[], days = 7): FlatTask[] {
-  const end = addDays(new Date(), days);
+/**
+ * A node's own startDate, falling back to its parent's startDate when it
+ * doesn't have one set directly (e.g. a sub-topic scheduled only via its
+ * deadline still inherits the chapter's start for this purpose).
+ */
+function getEffectiveStartDate(
+  node: LearningNode,
+  nodes: Record<string, LearningNode>,
+): string | null {
+  if (node.startDate) return node.startDate;
+  const parent = node.parentId ? nodes[node.parentId] : null;
+  return parent?.startDate ?? null;
+}
+
+export function getUpcomingDeadlines(
+  tasks: FlatTask[],
+  nodes: Record<string, LearningNode>,
+  days = 7,
+): FlatTask[] {
+  const lookaheadEnd = addDays(new Date(), days);
   return tasks
-    .filter(
-      ({ node }) =>
-        node.status !== "completed" &&
-        node.deadline &&
-        !isPast(parseLocalDate(node.deadline)) &&
-        !isToday(parseLocalDate(node.deadline)) &&
-        isWithinInterval(parseLocalDate(node.deadline), {
-          start: new Date(),
-          end,
-        }),
-    )
+    .filter(({ node }) => {
+      if (node.status === "completed" || !node.deadline) return false;
+      const deadline = parseLocalDate(node.deadline);
+      if (isPast(deadline) || isToday(deadline)) return false;
+
+      // Already inside the task's own start–deadline window (e.g. a
+      // sub-topic scheduled over several weeks) counts as upcoming
+      // regardless of how far off the deadline itself is.
+      const startIso = getEffectiveStartDate(node, nodes);
+      if (startIso) {
+        const start = parseLocalDate(startIso);
+        if (isToday(start) || isPast(start)) return true;
+      }
+
+      // Otherwise, fall back to a fixed lookahead window on the deadline.
+      return isWithinInterval(deadline, { start: new Date(), end: lookaheadEnd });
+    })
     .sort((a, b) => (a.node.deadline ?? "").localeCompare(b.node.deadline ?? ""));
 }
 

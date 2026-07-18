@@ -18,9 +18,10 @@ import {
 import { cn } from "@/lib/utils";
 import { useLinerStore } from "@/store/liner-store";
 import { getNodeProgress } from "@/lib/progress";
-import { getLineColorClasses, PRIORITY_CLASSES } from "@/lib/colors";
+import { getLineColorClasses, PRIORITY_CLASSES, STATUS_LABELS } from "@/lib/colors";
 import { parseLocalDate } from "@/lib/date";
 import { QuickAddPopover } from "./quick-add-popover";
+import { IconTooltip } from "@/components/shared/icon-tooltip";
 
 const STATUS_ICONS = {
   not_started: Circle,
@@ -130,22 +131,24 @@ function RoadmapNodeInner({ data, selected }: NodeProps) {
       </div>
 
       <div className="flex items-start gap-1.5 p-3">
-        <button
-          className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground"
-          onClick={(e) => {
-            e.stopPropagation();
-            nextStatus();
-          }}
-        >
-          <StatusIcon
-            className={cn(
-              "size-4",
-              node.status === "completed" && "text-emerald-500",
-              node.status === "in_progress" && "text-blue-500",
-              node.status === "blocked" && "text-rose-500",
-            )}
-          />
-        </button>
+        <IconTooltip label={`${STATUS_LABELS[node.status]} — click to change`}>
+          <button
+            className="mt-0.5 shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              nextStatus();
+            }}
+          >
+            <StatusIcon
+              className={cn(
+                "size-4",
+                node.status === "completed" && "text-emerald-500",
+                node.status === "in_progress" && "text-blue-500",
+                node.status === "blocked" && "text-rose-500",
+              )}
+            />
+          </button>
+        </IconTooltip>
 
         <div className="min-w-0 flex-1">
           {editing ? (
@@ -235,23 +238,27 @@ function RoadmapNodeInner({ data, selected }: NodeProps) {
       )}
 
       {hasChildren && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleCollapse(nodeId);
-          }}
-          className="absolute -right-3 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-sm"
-        >
-          {node.collapsed ? (
-            <ChevronRight className="size-3.5 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="size-3.5 text-muted-foreground" />
-          )}
-        </button>
+        <IconTooltip label={node.collapsed ? "Expand" : "Collapse"} side="right">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleCollapse(nodeId);
+            }}
+            aria-label={node.collapsed ? "Expand" : "Collapse"}
+            className="absolute -right-3 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card shadow-sm"
+          >
+            {node.collapsed ? (
+              <ChevronRight className="size-3.5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="size-3.5 text-muted-foreground" />
+            )}
+          </button>
+        </IconTooltip>
       )}
 
       <QuickAddPopover
         align="center"
+        tooltipLabel="Add sub-topic"
         onAdd={(titles) => {
           if (titles.length === 1) {
             const id = createNode({
@@ -267,7 +274,7 @@ function RoadmapNodeInner({ data, selected }: NodeProps) {
         trigger={
           <button
             onClick={(e) => e.stopPropagation()}
-            title="Add sub-topic"
+            aria-label="Add sub-topic"
             className="absolute -bottom-3 left-1/2 flex size-6 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-card text-muted-foreground opacity-0 shadow-sm transition-opacity hover:border-brand hover:text-brand group-hover/node:opacity-100 data-[popup-open]:opacity-100"
           >
             <Plus className="size-3.5" />

@@ -9,17 +9,20 @@ import {
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { IconTooltip } from "@/components/shared/icon-tooltip";
 
 export function QuickAddPopover({
   trigger,
   onAdd,
   placeholder = "Topic 1\nTopic 2\nTopic 3",
   align = "start",
+  tooltipLabel,
 }: {
   trigger: React.ReactElement;
   onAdd: (titles: string[]) => void;
   placeholder?: string;
   align?: "start" | "center" | "end";
+  tooltipLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
@@ -44,7 +47,13 @@ export function QuickAddPopover({
         if (!next) setText("");
       }}
     >
-      <PopoverTrigger render={trigger} />
+      {tooltipLabel && !open ? (
+        <IconTooltip label={tooltipLabel}>
+          <PopoverTrigger render={trigger} />
+        </IconTooltip>
+      ) : (
+        <PopoverTrigger render={trigger} />
+      )}
       <PopoverContent align={align} className="w-72 p-3">
         <p className="mb-1.5 text-xs font-medium text-muted-foreground">
           Add topics

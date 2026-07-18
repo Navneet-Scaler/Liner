@@ -71,7 +71,7 @@ export function DashboardView() {
 
   const tasks = getAllLeafTasks(lines, nodes);
   const today = getTodaysTasks(tasks);
-  const upcoming = getUpcomingDeadlines(tasks);
+  const upcoming = getUpcomingDeadlines(tasks, nodes);
   const overdue = getOverdueTasks(tasks);
   const weekly = getWeeklyActivity(tasks);
   const heatmap = getHeatmapData(tasks);
