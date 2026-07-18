@@ -168,12 +168,11 @@ export function ActivityView({ lineId }: { lineId: string }) {
     });
 
   const { progress, total, completed } = getLineStats(line, nodes);
-  const existingDates = new Set(
-    days.map((d) => d.deadline).filter((d): d is string => Boolean(d)),
-  );
 
+  // Multiple blocks for the same date (even several "Today" cards) are
+  // allowed on purpose — e.g. separate cards for a morning routine vs an
+  // evening one. No de-duplication here.
   const addDayForDate = (iso: string) => {
-    if (existingDates.has(iso)) return;
     // Title is left blank on purpose — the date pill above already shows
     // "Today"/"Tomorrow"/the date, and a hardcoded title like "Today" would
     // go stale (it'd still say "Today" a week later). The title is only for
@@ -186,15 +185,12 @@ export function ActivityView({ lineId }: { lineId: string }) {
     updateNode(id, { deadline: iso });
   };
 
-  const todayIso = format(new Date(), "yyyy-MM-dd");
-  const tomorrowIso = format(addDays(new Date(), 1), "yyyy-MM-dd");
-
   const addDay = (offsetDays: number) => {
     addDayForDate(format(addDays(new Date(), offsetDays), "yyyy-MM-dd"));
   };
 
   const addCustomDay = () => {
-    if (!customDate || existingDates.has(customDate)) return;
+    if (!customDate) return;
     addDayForDate(customDate);
     setCustomDate("");
   };
@@ -227,21 +223,19 @@ export function ActivityView({ lineId }: { lineId: string }) {
                 size="sm"
                 variant="secondary"
                 className="gap-1.5"
-                disabled={existingDates.has(todayIso)}
                 onClick={() => addDay(0)}
               >
                 <Plus className="size-3.5" />
-                {existingDates.has(todayIso) ? "Today added" : "Today"}
+                Today
               </Button>
               <Button
                 size="sm"
                 variant="secondary"
                 className="gap-1.5"
-                disabled={existingDates.has(tomorrowIso)}
                 onClick={() => addDay(1)}
               >
                 <Plus className="size-3.5" />
-                {existingDates.has(tomorrowIso) ? "Tomorrow added" : "Tomorrow"}
+                Tomorrow
               </Button>
               <div className="flex items-center gap-1.5">
                 <DatePickerField
@@ -254,7 +248,7 @@ export function ActivityView({ lineId }: { lineId: string }) {
                   size="sm"
                   variant="secondary"
                   className="h-8 shrink-0 gap-1.5"
-                  disabled={!customDate || existingDates.has(customDate)}
+                  disabled={!customDate}
                   onClick={addCustomDay}
                 >
                   <CalendarPlus className="size-3.5" />
