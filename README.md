@@ -1,34 +1,65 @@
 # Liner
 
-A visual learning and progress roadmap builder. Break a subject down into
-chapters and topics on an interactive canvas, track recurring daily practice
-in an activity tracker, and follow overall progress from a single dashboard.
+A personal habit and task tracker, built as a hobby project. I wanted a
+visual way to plan out what I'm learning — break a subject into chapters and
+topics on a canvas, track daily habits like LeetCode or reading, and see all
+of it on one dashboard — instead of scattering it across notes apps and
+spreadsheets.
 
 **Live demo:** [liner-xi.vercel.app](https://liner-xi.vercel.app/)
 
-Accounts are backed by [Supabase](https://supabase.com) (Postgres + email
-auth) — sign up with an email and password and your data syncs across
-devices. A JSON export/import feature is still built in for manual backups.
+## What it does today
 
-## Features
-
-- **Roadmap canvas** — build nested chapter → topic trees on an infinite,
-  zoomable/pannable canvas (powered by React Flow), with drag-to-reposition,
+- **Roadmap canvas** — lay out a subject as a chapter → topic tree on an
+  infinite, zoomable canvas (React Flow), with drag-to-reposition,
   collapsible branches, and auto-arrange.
 - **Bulk creation** — paste a whole outline (markdown headings, bullets, or
-  indentation) and the entire tree is created in one shot, instead of adding
-  nodes one at a time.
+  indentation) and the entire tree is created in one shot.
 - **Rich topic detail** — status, priority, difficulty, dates, checklists,
-  tags, notes, and resource links per topic, with a calendar date picker and
-  a "spread deadlines evenly across sub-topics" scheduler.
-- **Activity tracker** — a second line type for recurring practice (e.g. a
-  daily problem-solving habit), with per-day checklists and streak tracking.
+  tags, notes, and resource links per topic, plus a "spread deadlines evenly
+  across sub-topics" scheduler.
+- **Activity tracker** — a second line type for recurring habits (daily
+  problems, reading, workouts), with per-day checklists and streaks.
 - **Dashboard** — today's plan, upcoming deadlines, overdue items, a weekly
-  activity chart, and a GitHub-style completion heatmap.
-- **Accounts** — email/password auth via Supabase; each account's data is
-  isolated with row-level security.
-- **Backup & restore** — export all data as a JSON file and re-import it.
-- **Light/dark themes**, with an interactive glass UI.
+  chart, and a GitHub-style completion heatmap.
+- **Accounts** — email/password auth via Supabase, data isolated per account
+  with row-level security, synced across devices.
+- **Backup & restore** — export everything as JSON and re-import it.
+- Light/dark themes with a glass UI.
+
+## Where this is headed
+
+Right now it's single-player — just you and your own lines. The next things
+I want to add:
+
+- Sharing progress with friends and seeing theirs
+- Groups, so a few people can track the same habit together
+- Integrations with things like LeetCode to pull progress in automatically
+- Public-ish peer profiles
+
+None of that exists yet — today it's a solo habit/task tracker.
+
+## Project structure
+
+```
+src/
+  app/                 Next.js routes (dashboard, /login)
+  components/
+    auth/              Login form + auth session provider
+    canvas/             Roadmap canvas, node cards, outline import
+    activity/           Activity tracker (daily habit) view
+    dashboard/           Dashboard view
+    node-panel/          Topic detail side panel
+    sidebar/             Line list, mobile drawer, new-line dialog
+    shared/              Small reusable bits (tooltips, date picker, icons)
+    ui/                  shadcn/ui primitives
+  lib/                 Pure logic: types, progress math, outline parsing,
+                        color/icon maps, Supabase client + data sync
+  store/               Zustand stores (app data, auth, UI state)
+  proxy.ts             Route protection (redirects signed-out users to /login)
+supabase/
+  schema.sql           DB schema + row-level security policies
+```
 
 ## Tech stack
 
@@ -41,7 +72,7 @@ devices. A JSON export/import feature is still built in for manual backups.
 - [Recharts](https://recharts.org) for the dashboard charts
 - [date-fns](https://date-fns.org) for date handling
 
-## Getting started
+## Running it yourself
 
 1. Create a free project at [supabase.com](https://supabase.com).
 2. In the Supabase SQL Editor, run `supabase/schema.sql` from this repo once
