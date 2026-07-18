@@ -12,7 +12,6 @@ import {
   Trash2,
   LogOut,
 } from "lucide-react";
-import { LinerLogo } from "@/components/shared/liner-logo";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -158,9 +157,8 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col text-sidebar-foreground">
       <div className="flex items-center gap-2 px-4 py-4">
-        <div className="flex size-7 items-center justify-center rounded-md bg-brand text-brand-foreground">
-          <LinerLogo className="size-4" />
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element -- the favicon (src/app/icon.svg) served as-is, not an optimizable content image */}
+        <img src="/icon.svg" alt="Liner" className="size-7" />
         <span className="font-semibold tracking-tight">Liner</span>
       </div>
 

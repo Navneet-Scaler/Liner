@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LinerLogo } from "@/components/shared/liner-logo";
 
 /** Supabase's raw auth error messages aren't great to show directly — map
  * the common ones to something a user can actually act on. */
@@ -110,9 +109,8 @@ export function AuthForm() {
   return (
     <div className="glass w-full max-w-sm rounded-2xl border border-border/60 p-6">
       <div className="mb-6 flex flex-col items-center text-center">
-        <div className="mb-3 flex size-12 items-center justify-center rounded-2xl bg-brand text-brand-foreground">
-          <LinerLogo className="size-5" />
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element -- the favicon (src/app/icon.svg) served as-is, not an optimizable content image */}
+        <img src="/icon.svg" alt="Liner" className="mb-3 size-14" />
         <h1 className="text-lg font-semibold">Liner</h1>
         <p className="text-sm text-muted-foreground">
           {mode === "login" ? "Log in to your account" : "Create an account"}
