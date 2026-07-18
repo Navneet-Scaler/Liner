@@ -155,7 +155,7 @@ export function LineHeader({
               }
             />
           </IconTooltip>
-          <PopoverContent align="start" className="w-96 gap-1.5 p-2.5">
+          <PopoverContent align="center" className="w-96 gap-1.5 p-2.5">
             <span className="text-xs font-medium text-muted-foreground">
               Notes
             </span>
