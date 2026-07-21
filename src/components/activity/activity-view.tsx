@@ -151,25 +151,27 @@ function DayCard({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="group flex items-center gap-2"
+                  className="group flex items-start gap-2"
                 >
-                  <GripVertical className="size-3.5 shrink-0 cursor-grab text-muted-foreground/40 opacity-0 group-hover:opacity-100 active:cursor-grabbing" />
+                  <GripVertical className="mt-0.5 size-3.5 shrink-0 cursor-grab text-muted-foreground/40 opacity-0 group-hover:opacity-100 active:cursor-grabbing" />
                   <Checkbox
                     checked={item.done}
                     onCheckedChange={() => toggleChecklistItem(node.id, item.id)}
+                    className="mt-0.5"
                   />
-                  <input
+                  <textarea
                     value={item.text}
                     onChange={(e) =>
                       editChecklistItem(node.id, item.id, e.target.value)
                     }
+                    rows={1}
                     className={cn(
-                      "flex-1 truncate bg-transparent text-sm outline-none",
+                      "field-sizing-content min-h-0 flex-1 resize-none bg-transparent text-sm leading-snug outline-none",
                       item.done && "text-muted-foreground line-through",
                     )}
                   />
                   <button
-                    className="opacity-0 group-hover:opacity-100"
+                    className="mt-0.5 opacity-0 group-hover:opacity-100"
                     onClick={() => removeChecklistItem(node.id, item.id)}
                   >
                     <X className="size-3 text-muted-foreground" />
