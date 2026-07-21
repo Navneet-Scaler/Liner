@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format, isToday, isTomorrow, isPast, addDays } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Reorder } from "framer-motion";
 import {
   Plus,
   X,
@@ -10,6 +10,7 @@ import {
   CalendarDays,
   CalendarPlus,
   ListChecks,
+  GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,8 @@ function DayCard({
   const toggleChecklistItem = useLinerStore((s) => s.toggleChecklistItem);
   const addChecklistItem = useLinerStore((s) => s.addChecklistItem);
   const removeChecklistItem = useLinerStore((s) => s.removeChecklistItem);
+  const editChecklistItem = useLinerStore((s) => s.editChecklistItem);
+  const reorderChecklistItems = useLinerStore((s) => s.reorderChecklistItems);
 
   const [draft, setDraft] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -132,37 +135,49 @@ function DayCard({
         <Progress value={progress} className="mb-3 h-1.5" />
 
         <div className="space-y-1.5">
-          <AnimatePresence initial={false}>
-            {node.checklist.map((item) => (
-              <motion.div
-                key={item.id}
-                layout
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, height: 0 }}
-                className="group flex items-center gap-2"
-              >
-                <Checkbox
-                  checked={item.done}
-                  onCheckedChange={() => toggleChecklistItem(node.id, item.id)}
-                />
-                <span
-                  className={cn(
-                    "flex-1 text-sm",
-                    item.done && "text-muted-foreground line-through",
-                  )}
+          <Reorder.Group
+            as="div"
+            axis="y"
+            values={node.checklist}
+            onReorder={(newOrder) => reorderChecklistItems(node.id, newOrder)}
+            className="space-y-1.5"
+          >
+            <AnimatePresence initial={false}>
+              {node.checklist.map((item) => (
+                <Reorder.Item
+                  key={item.id}
+                  value={item}
+                  as="div"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="group flex items-center gap-2"
                 >
-                  {item.text}
-                </span>
-                <button
-                  className="opacity-0 group-hover:opacity-100"
-                  onClick={() => removeChecklistItem(node.id, item.id)}
-                >
-                  <X className="size-3 text-muted-foreground" />
-                </button>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+                  <GripVertical className="size-3.5 shrink-0 cursor-grab text-muted-foreground/40 opacity-0 group-hover:opacity-100 active:cursor-grabbing" />
+                  <Checkbox
+                    checked={item.done}
+                    onCheckedChange={() => toggleChecklistItem(node.id, item.id)}
+                  />
+                  <input
+                    value={item.text}
+                    onChange={(e) =>
+                      editChecklistItem(node.id, item.id, e.target.value)
+                    }
+                    className={cn(
+                      "flex-1 truncate bg-transparent text-sm outline-none",
+                      item.done && "text-muted-foreground line-through",
+                    )}
+                  />
+                  <button
+                    className="opacity-0 group-hover:opacity-100"
+                    onClick={() => removeChecklistItem(node.id, item.id)}
+                  >
+                    <X className="size-3 text-muted-foreground" />
+                  </button>
+                </Reorder.Item>
+              ))}
+            </AnimatePresence>
+          </Reorder.Group>
           <div className="flex items-center gap-2">
             <Plus className="size-3.5 text-muted-foreground" />
             <Input

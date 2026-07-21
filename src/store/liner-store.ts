@@ -213,6 +213,8 @@ interface LinerState {
   toggleChecklistItem: (nodeId: string, itemId: string) => void;
   addChecklistItem: (nodeId: string, text: string) => void;
   removeChecklistItem: (nodeId: string, itemId: string) => void;
+  editChecklistItem: (nodeId: string, itemId: string, text: string) => void;
+  reorderChecklistItems: (nodeId: string, checklist: ChecklistItem[]) => void;
 
   addResource: (nodeId: string, resource: Omit<ResourceLink, "id">) => void;
   removeResource: (nodeId: string, resourceId: string) => void;
@@ -871,6 +873,19 @@ export const useLinerStore = create<LinerState>()((set, get) => ({
       checklist,
       status: deriveStatusFromChecklist(checklist, node.status),
     });
+  },
+
+  editChecklistItem: (nodeId, itemId, text) => {
+    const node = get().nodes[nodeId];
+    if (!node) return;
+    const checklist = node.checklist.map((item) =>
+      item.id === itemId ? { ...item, text } : item,
+    );
+    get().updateNode(nodeId, { checklist });
+  },
+
+  reorderChecklistItems: (nodeId, checklist) => {
+    get().updateNode(nodeId, { checklist });
   },
 
   addResource: (nodeId, resource) => {
