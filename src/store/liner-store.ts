@@ -181,6 +181,7 @@ interface LinerState {
   deleteLine: (id: string) => void;
   togglePinLine: (id: string) => void;
   toggleArchiveLine: (id: string) => void;
+  reorderRootNodes: (lineId: string, orderedIds: string[]) => void;
   setActiveLine: (id: string | null) => void;
 
   createNode: (input: {
@@ -381,6 +382,24 @@ export const useLinerStore = create<LinerState>()((set, get) => ({
   },
 
   setActiveLine: (id) => set({ activeLineId: id, selectedNodeId: null }),
+
+  // Reorders just the given ids within rootNodeIds, keeping every other id's
+  // position untouched — used to drag-reorder same-date activity blocks
+  // without disturbing blocks that belong to other dates.
+  reorderRootNodes: (lineId, orderedIds) => {
+    const line = get().lines[lineId];
+    if (!line) return;
+    const idSet = new Set(orderedIds);
+    const positions: number[] = [];
+    line.rootNodeIds.forEach((id, idx) => {
+      if (idSet.has(id)) positions.push(idx);
+    });
+    const rootNodeIds = [...line.rootNodeIds];
+    positions.forEach((pos, i) => {
+      rootNodeIds[pos] = orderedIds[i];
+    });
+    get().updateLine(lineId, { rootNodeIds });
+  },
 
   createNode: ({ lineId, parentId, title, initial }) => {
     const id = createId("node");

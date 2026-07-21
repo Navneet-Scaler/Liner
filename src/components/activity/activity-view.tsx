@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format, isToday, isTomorrow, isPast, addDays } from "date-fns";
-import { motion, AnimatePresence, Reorder } from "framer-motion";
+import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
 import {
   Plus,
   X,
@@ -59,6 +59,7 @@ function DayCard({
 
   const [draft, setDraft] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const dragControls = useDragControls();
   const colors = getLineColorClasses(color);
   const progress = getNodeProgress(nodes, node.id);
   const today = isToday(
@@ -72,8 +73,11 @@ function DayCard({
 
   return (
     <>
-      <motion.div
-        layout
+      <Reorder.Item
+        value={node}
+        as="div"
+        dragListener={false}
+        dragControls={dragControls}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, height: 0 }}
@@ -87,7 +91,12 @@ function DayCard({
         )}
       >
         <div className="mb-3 flex items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-1 items-start gap-2">
+          <div className="group/block flex min-w-0 flex-1 items-start gap-2">
+            <GripVertical
+              onPointerDown={(e) => dragControls.start(e)}
+              style={{ touchAction: "none" }}
+              className="mt-0.5 size-4 shrink-0 cursor-grab text-muted-foreground/40 opacity-0 group-hover/block:opacity-100 active:cursor-grabbing"
+            />
             {selectMode && (
               <Checkbox
                 checked={selected}
@@ -196,7 +205,7 @@ function DayCard({
             />
           </div>
         </div>
-      </motion.div>
+      </Reorder.Item>
       <ConfirmDialog
         open={confirmDeleteOpen}
         onOpenChange={setConfirmDeleteOpen}
@@ -213,6 +222,7 @@ export function ActivityView({ lineId }: { lineId: string }) {
   const nodes = useLinerStore((s) => s.nodes);
   const createNode = useLinerStore((s) => s.createNode);
   const deleteNode = useLinerStore((s) => s.deleteNode);
+  const reorderRootNodes = useLinerStore((s) => s.reorderRootNodes);
   const [customDate, setCustomDate] = useState("");
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -394,7 +404,15 @@ export function ActivityView({ lineId }: { lineId: string }) {
                   <h3 className="mb-2 text-sm font-medium text-muted-foreground">
                     {group.label}
                   </h3>
-                  <div className="flex flex-col gap-3">
+                  <Reorder.Group
+                    as="div"
+                    axis="y"
+                    values={group.items}
+                    onReorder={(newOrder) =>
+                      reorderRootNodes(line.id, newOrder.map((d) => d.id))
+                    }
+                    className="flex flex-col gap-3"
+                  >
                     <AnimatePresence initial={false}>
                       {group.items.map((day) => (
                         <DayCard
@@ -407,7 +425,7 @@ export function ActivityView({ lineId }: { lineId: string }) {
                         />
                       ))}
                     </AnimatePresence>
-                  </div>
+                  </Reorder.Group>
                 </div>
               ))}
             </div>
