@@ -216,6 +216,12 @@ interface LinerState {
   removeChecklistItem: (nodeId: string, itemId: string) => void;
   editChecklistItem: (nodeId: string, itemId: string, text: string) => void;
   reorderChecklistItems: (nodeId: string, checklist: ChecklistItem[]) => void;
+  moveChecklistItem: (
+    sourceNodeId: string,
+    targetNodeId: string,
+    itemId: string,
+    targetIndex: number,
+  ) => void;
 
   addResource: (nodeId: string, resource: Omit<ResourceLink, "id">) => void;
   removeResource: (nodeId: string, resourceId: string) => void;
@@ -905,6 +911,72 @@ export const useLinerStore = create<LinerState>()((set, get) => ({
 
   reorderChecklistItems: (nodeId, checklist) => {
     get().updateNode(nodeId, { checklist });
+  },
+
+  moveChecklistItem: (sourceNodeId, targetNodeId, itemId, targetIndex) => {
+    let changedNodeIds: string[] = [];
+
+    set((state) => {
+      const sourceNode = state.nodes[sourceNodeId];
+      const targetNode = state.nodes[targetNodeId];
+      if (!sourceNode || !targetNode) return state;
+
+      const sourceIndex = sourceNode.checklist.findIndex((item) => item.id === itemId);
+      if (sourceIndex === -1) return state;
+
+      const movedItem = sourceNode.checklist[sourceIndex];
+      const sourceChecklist = sourceNode.checklist.filter((item) => item.id !== itemId);
+      const clampedTargetIndex = Math.max(
+        0,
+        Math.min(
+          targetIndex,
+          targetNodeId === sourceNodeId
+            ? sourceChecklist.length
+            : targetNode.checklist.length,
+        ),
+      );
+
+      const targetBaseChecklist =
+        targetNodeId === sourceNodeId ? sourceChecklist : targetNode.checklist;
+      const targetChecklist = [...targetBaseChecklist];
+      targetChecklist.splice(clampedTargetIndex, 0, movedItem);
+
+      const ts = nowIso();
+      const nodes = { ...state.nodes };
+
+      if (targetNodeId === sourceNodeId) {
+        nodes[sourceNodeId] = {
+          ...sourceNode,
+          checklist: targetChecklist,
+          status: deriveStatusFromChecklist(targetChecklist, sourceNode.status),
+          updatedAt: ts,
+        };
+        changedNodeIds = [sourceNodeId];
+      } else {
+        nodes[sourceNodeId] = {
+          ...sourceNode,
+          checklist: sourceChecklist,
+          status: deriveStatusFromChecklist(sourceChecklist, sourceNode.status),
+          updatedAt: ts,
+        };
+        nodes[targetNodeId] = {
+          ...targetNode,
+          checklist: targetChecklist,
+          status: deriveStatusFromChecklist(targetChecklist, targetNode.status),
+          updatedAt: ts,
+        };
+        changedNodeIds = [sourceNodeId, targetNodeId];
+      }
+
+      return { nodes };
+    });
+
+    const userId = currentUserId();
+    if (userId && changedNodeIds.length > 0) {
+      const state = get();
+      const toSync = changedNodeIds.map((id) => state.nodes[id]).filter(Boolean);
+      if (toSync.length > 0) void upsertNodes(toSync, userId);
+    }
   },
 
   addResource: (nodeId, resource) => {
