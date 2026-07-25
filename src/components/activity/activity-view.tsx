@@ -1,7 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { format, isToday, isTomorrow, isPast, addDays } from "date-fns";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  useDroppable,
+  type DragStartEvent,
+  type DragOverEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Plus,
   X,
@@ -24,7 +43,7 @@ import { getLineStats } from "@/lib/progress";
 import { parseLocalDate } from "@/lib/date";
 import { DatePickerField } from "@/components/shared/date-picker-field";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import type { LearningNode } from "@/lib/types";
+import type { ChecklistItem, LearningNode } from "@/lib/types";
 
 function dayLabel(iso: string | null) {
   if (!iso) return "No date";
@@ -34,30 +53,93 @@ function dayLabel(iso: string | null) {
   return format(date, "EEE, MMM d");
 }
 
+type BlockDragData = { type: "block" };
+type TaskDragData = { type: "task"; nodeId: string };
+type GroupDropData = { type: "group"; groupKey: string };
+type ChecklistEmptyDropData = { type: "checklist-empty"; nodeId: string };
+
+// A stable reference is required: dnd-kit re-registers a draggable/droppable
+// whenever its `data` object identity changes, and passing a fresh literal
+// on every render triggers an internal measure -> setState -> render loop.
+const BLOCK_DRAG_DATA: BlockDragData = { type: "block" };
+
+type ActiveDrag =
+  | { kind: "block"; node: LearningNode }
+  | { kind: "task"; item: ChecklistItem; sourceNodeId: string }
+  | null;
+
+/* ---------- Task row (sortable) ---------- */
+
+function TaskRow({
+  item,
+  nodeId,
+  onToggle,
+  onEdit,
+  onRemove,
+}: {
+  item: ChecklistItem;
+  nodeId: string;
+  onToggle: () => void;
+  onEdit: (text: string) => void;
+  onRemove: () => void;
+}) {
+  const dragData = useMemo<TaskDragData>(() => ({ type: "task", nodeId }), [nodeId]);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: item.id, data: dragData });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn("group flex items-start gap-2", isDragging && "opacity-30")}
+    >
+      <span
+        {...attributes}
+        {...listeners}
+        className="mt-0.5 shrink-0 cursor-grab touch-none opacity-0 outline-none group-hover:opacity-100 active:cursor-grabbing"
+      >
+        <GripVertical className="size-3.5 text-muted-foreground/40" />
+      </span>
+      <Checkbox
+        checked={item.done}
+        onCheckedChange={onToggle}
+        className="mt-0.5"
+      />
+      <textarea
+        value={item.text}
+        onChange={(e) => onEdit(e.target.value)}
+        rows={1}
+        className={cn(
+          "field-sizing-content min-h-0 flex-1 resize-none bg-transparent text-sm leading-snug outline-none",
+          item.done && "text-muted-foreground line-through",
+        )}
+      />
+      <button
+        className="mt-0.5 opacity-0 group-hover:opacity-100"
+        onClick={onRemove}
+      >
+        <X className="size-3 text-muted-foreground" />
+      </button>
+    </div>
+  );
+}
+
+/* ---------- Day card (sortable block) ---------- */
+
 function DayCard({
   node,
   color,
   selectMode,
   selected,
   onToggleSelect,
-  draggedTask,
-  onDayDragStart,
-  onDayDragEnd,
-  onTaskDragStart,
-  onTaskDragEnd,
-  onTaskDrop,
+  checklistOrder,
 }: {
   node: LearningNode;
   color: string;
   selectMode: boolean;
   selected: boolean;
   onToggleSelect: () => void;
-  draggedTask: { nodeId: string; itemId: string } | null;
-  onDayDragStart: (nodeId: string) => void;
-  onDayDragEnd: () => void;
-  onTaskDragStart: (nodeId: string, itemId: string) => void;
-  onTaskDragEnd: () => void;
-  onTaskDrop: (targetNodeId: string, targetIndex: number) => void;
+  checklistOrder: ChecklistItem[];
 }) {
   const nodes = useLinerStore((s) => s.nodes);
   const updateNode = useLinerStore((s) => s.updateNode);
@@ -69,7 +151,6 @@ function DayCard({
 
   const [draft, setDraft] = useState("");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [taskDropIndex, setTaskDropIndex] = useState<number | null>(null);
   const colors = getLineColorClasses(color);
   const progress = getNodeProgress(nodes, node.id);
   const today = isToday(
@@ -81,11 +162,25 @@ function DayCard({
     !isToday(parseLocalDate(node.deadline)) &&
     progress < 100;
 
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: node.id, data: BLOCK_DRAG_DATA });
+
+  const emptyChecklistDropId = `checklist-empty-${node.id}`;
+  const emptyChecklistData = useMemo<ChecklistEmptyDropData>(
+    () => ({ type: "checklist-empty", nodeId: node.id }),
+    [node.id],
+  );
+  const { setNodeRef: setEmptyChecklistRef, isOver: isOverEmptyChecklist } =
+    useDroppable({ id: emptyChecklistDropId, data: emptyChecklistData });
+
   return (
     <>
       <div
+        ref={setNodeRef}
+        style={{ transform: CSS.Transform.toString(transform), transition }}
         className={cn(
-          "rounded-xl border bg-card p-4",
+          "rounded-xl border bg-card p-4 shadow-sm transition-shadow",
+          isDragging && "opacity-30",
           selected
             ? "border-transparent ring-2 ring-brand"
             : today
@@ -96,13 +191,9 @@ function DayCard({
         <div className="mb-3 flex items-start justify-between gap-2">
           <div className="group/block flex min-w-0 flex-1 items-start gap-2">
             <span
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.effectAllowed = "move";
-                onDayDragStart(node.id);
-              }}
-              onDragEnd={onDayDragEnd}
-              className="mt-0.5 shrink-0 cursor-grab opacity-0 group-hover/block:opacity-100 active:cursor-grabbing"
+              {...attributes}
+              {...listeners}
+              className="mt-0.5 shrink-0 cursor-grab touch-none opacity-0 outline-none group-hover/block:opacity-100 active:cursor-grabbing"
             >
               <GripVertical className="size-4 text-muted-foreground/40" />
             </span>
@@ -153,95 +244,32 @@ function DayCard({
         <Progress value={progress} className="mb-3 h-1.5" />
 
         <div className="space-y-1.5">
-          <div className="space-y-1.5">
-            {node.checklist.map((item, index) => (
-              <div key={item.id} className="space-y-1.5">
+          <SortableContext
+            items={checklistOrder.map((i) => i.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-1.5">
+              {checklistOrder.map((item) => (
+                <TaskRow
+                  key={item.id}
+                  item={item}
+                  nodeId={node.id}
+                  onToggle={() => toggleChecklistItem(node.id, item.id)}
+                  onEdit={(text) => editChecklistItem(node.id, item.id, text)}
+                  onRemove={() => removeChecklistItem(node.id, item.id)}
+                />
+              ))}
+              {checklistOrder.length === 0 && (
                 <div
-                  onDragOver={(e) => {
-                    if (!draggedTask) return;
-                    e.preventDefault();
-                    setTaskDropIndex(index);
-                  }}
-                  onDragLeave={() => setTaskDropIndex((curr) => (curr === index ? null : curr))}
-                  onDrop={(e) => {
-                    if (!draggedTask) return;
-                    e.preventDefault();
-                    onTaskDrop(node.id, index);
-                    setTaskDropIndex(null);
-                  }}
+                  ref={setEmptyChecklistRef}
                   className={cn(
                     "h-1.5 rounded transition-colors",
-                    draggedTask && taskDropIndex === index
-                      ? "bg-brand/40"
-                      : "bg-transparent",
+                    isOverEmptyChecklist ? "bg-brand/40" : "bg-transparent",
                   )}
                 />
-                <div className="group flex items-start gap-2">
-                  <span
-                    draggable
-                    onDragStart={(e) => {
-                      e.stopPropagation();
-                      e.dataTransfer.effectAllowed = "move";
-                      onTaskDragStart(node.id, item.id);
-                    }}
-                    onDragEnd={() => {
-                      onTaskDragEnd();
-                      setTaskDropIndex(null);
-                    }}
-                    className="mt-0.5 shrink-0 cursor-grab opacity-0 group-hover:opacity-100 active:cursor-grabbing"
-                  >
-                    <GripVertical className="size-3.5 text-muted-foreground/40" />
-                  </span>
-                  <Checkbox
-                    checked={item.done}
-                    onCheckedChange={() => toggleChecklistItem(node.id, item.id)}
-                    className="mt-0.5"
-                  />
-                  <textarea
-                    value={item.text}
-                    onChange={(e) =>
-                      editChecklistItem(node.id, item.id, e.target.value)
-                    }
-                    rows={1}
-                    className={cn(
-                      "field-sizing-content min-h-0 flex-1 resize-none bg-transparent text-sm leading-snug outline-none",
-                      item.done && "text-muted-foreground line-through",
-                    )}
-                  />
-                  <button
-                    className="mt-0.5 opacity-0 group-hover:opacity-100"
-                    onClick={() => removeChecklistItem(node.id, item.id)}
-                  >
-                    <X className="size-3 text-muted-foreground" />
-                  </button>
-                </div>
-              </div>
-            ))}
-            <div
-              onDragOver={(e) => {
-                if (!draggedTask) return;
-                e.preventDefault();
-                setTaskDropIndex(node.checklist.length);
-              }}
-              onDragLeave={() =>
-                setTaskDropIndex((curr) =>
-                  curr === node.checklist.length ? null : curr,
-                )
-              }
-              onDrop={(e) => {
-                if (!draggedTask) return;
-                e.preventDefault();
-                onTaskDrop(node.id, node.checklist.length);
-                setTaskDropIndex(null);
-              }}
-              className={cn(
-                "h-1.5 rounded transition-colors",
-                draggedTask && taskDropIndex === node.checklist.length
-                  ? "bg-brand/40"
-                  : "bg-transparent",
               )}
-            />
-          </div>
+            </div>
+          </SortableContext>
           <div className="flex items-center gap-2">
             <Plus className="size-3.5 text-muted-foreground" />
             <Input
@@ -270,27 +298,323 @@ function DayCard({
   );
 }
 
+/* ---------- Drag overlays (floating preview) ---------- */
+
+function BlockOverlay({ node, color }: { node: LearningNode; color: string }) {
+  const colors = getLineColorClasses(color);
+  return (
+    <div className="w-72 rotate-2 rounded-xl border border-border bg-card p-4 shadow-2xl ring-1 ring-black/10 sm:w-80">
+      <span
+        className={cn(
+          "rounded-full px-2 py-0.5 text-[10px] font-medium",
+          colors.bgSoft,
+          colors.text,
+        )}
+      >
+        {dayLabel(node.deadline)}
+      </span>
+      <p className="mt-1.5 truncate text-sm font-medium">
+        {node.title || "Untitled"}
+      </p>
+    </div>
+  );
+}
+
+function TaskOverlay({ item }: { item: ChecklistItem }) {
+  return (
+    <div className="flex w-64 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-2xl ring-1 ring-black/10">
+      <Checkbox checked={item.done} disabled />
+      <span
+        className={cn(
+          "flex-1 truncate text-sm",
+          item.done && "text-muted-foreground line-through",
+        )}
+      >
+        {item.text || "Untitled task"}
+      </span>
+    </div>
+  );
+}
+
+/* ---------- Date-group column (droppable fallback for "drop at end") ---------- */
+
+function GroupColumn({
+  groupKey,
+  label,
+  children,
+}: {
+  groupKey: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  const dropId = `group-${groupKey}`;
+  const dropData = useMemo<GroupDropData>(() => ({ type: "group", groupKey }), [groupKey]);
+  const { setNodeRef } = useDroppable({ id: dropId, data: dropData });
+
+  return (
+    <div ref={setNodeRef} className="w-72 shrink-0 sm:w-80">
+      <h3 className="mb-2 text-sm font-medium text-muted-foreground">{label}</h3>
+      {children}
+    </div>
+  );
+}
+
 export function ActivityView({ lineId }: { lineId: string }) {
   const line = useLinerStore((s) => s.lines[lineId]);
   const nodes = useLinerStore((s) => s.nodes);
   const createNode = useLinerStore((s) => s.createNode);
   const deleteNode = useLinerStore((s) => s.deleteNode);
-  const reorderRootNodes = useLinerStore((s) => s.reorderRootNodes);
   const updateNode = useLinerStore((s) => s.updateNode);
+  const reorderRootNodes = useLinerStore((s) => s.reorderRootNodes);
   const moveChecklistItem = useLinerStore((s) => s.moveChecklistItem);
+
   const [customDate, setCustomDate] = useState("");
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmBulkDeleteOpen, setConfirmBulkDeleteOpen] = useState(false);
-  const [draggedDayId, setDraggedDayId] = useState<string | null>(null);
-  const [dayDropTarget, setDayDropTarget] = useState<{
-    groupKey: string;
-    index: number;
-  } | null>(null);
-  const [draggedTask, setDraggedTask] = useState<{
-    nodeId: string;
-    itemId: string;
-  } | null>(null);
+
+  // Live (in-progress) render order — synced from the store when idle, and
+  // mutated directly during a drag so siblings shift/animate in real time
+  // instead of just showing a static insertion marker.
+  const [blocksByGroup, setBlocksByGroup] = useState<Record<string, string[]>>({});
+  const [tasksByNode, setTasksByNode] = useState<Record<string, string[]>>({});
+  const [activeDrag, setActiveDrag] = useState<ActiveDrag>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
+
+  const days = useMemo(
+    () =>
+      (line?.rootNodeIds ?? [])
+        .map((id) => nodes[id])
+        .filter((n): n is NonNullable<typeof n> => Boolean(n))
+        .sort((a, b) => {
+          if (!a.deadline) return 1;
+          if (!b.deadline) return -1;
+          return a.deadline.localeCompare(b.deadline);
+        }),
+    [line, nodes],
+  );
+
+  // Cards sharing a date are grouped under one heading and stacked
+  // vertically. `days` is already date-sorted, so groups come out in order.
+  const dayGroups = useMemo(() => {
+    const groups: { key: string; items: LearningNode[] }[] = [];
+    const groupIndex = new Map<string, number>();
+    for (const day of days) {
+      const key = day.deadline ?? "__no_date__";
+      let idx = groupIndex.get(key);
+      if (idx === undefined) {
+        idx = groups.length;
+        groupIndex.set(key, idx);
+        groups.push({ key, items: [] });
+      }
+      groups[idx].items.push(day);
+    }
+    return groups;
+  }, [days]);
+
+  const checklistItemsById = useMemo(() => {
+    const map = new Map<string, ChecklistItem>();
+    days.forEach((d) => d.checklist.forEach((item) => map.set(item.id, item)));
+    return map;
+  }, [days]);
+
+  const isDragging = activeDrag !== null;
+
+  // Re-sync the live order from the store whenever the underlying data
+  // changes — but not mid-drag, or the list would jump under the cursor.
+  // Done during render (React's "adjusting state" pattern) rather than in
+  // an effect, so it applies before paint with no extra render/flicker.
+  const syncSignature = useMemo(
+    () =>
+      JSON.stringify(dayGroups.map((g) => [g.key, g.items.map((d) => d.id)])) +
+      "|" +
+      JSON.stringify(days.map((d) => [d.id, d.checklist.map((c) => c.id)])),
+    [dayGroups, days],
+  );
+  const [syncedSignature, setSyncedSignature] = useState("");
+  if (!isDragging && syncSignature !== syncedSignature) {
+    const nextBlocks: Record<string, string[]> = {};
+    dayGroups.forEach((g) => {
+      nextBlocks[g.key] = g.items.map((d) => d.id);
+    });
+    const nextTasks: Record<string, string[]> = {};
+    days.forEach((d) => {
+      nextTasks[d.id] = d.checklist.map((c) => c.id);
+    });
+    setBlocksByGroup(nextBlocks);
+    setTasksByNode(nextTasks);
+    setSyncedSignature(syncSignature);
+  }
+
+  const todayIso = format(new Date(), "yyyy-MM-dd");
+
+  const canMoveToDate = (
+    day: LearningNode,
+    targetDate: string,
+    sameDate: boolean,
+  ) => {
+    if (sameDate) return true;
+    if (!day.deadline) return false;
+    if (getNodeProgress(nodes, day.id) >= 100) return false;
+    if (day.deadline < todayIso) return false;
+    if (targetDate < todayIso) return false;
+    return targetDate > day.deadline;
+  };
+
+  const findBlockGroup = (id: string, map: Record<string, string[]>) => {
+    for (const [key, ids] of Object.entries(map)) {
+      if (ids.includes(id)) return key;
+    }
+    return null;
+  };
+
+  const findTaskNode = (id: string, map: Record<string, string[]>) => {
+    for (const [nid, ids] of Object.entries(map)) {
+      if (ids.includes(id)) return nid;
+    }
+    return null;
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const data = event.active.data.current as BlockDragData | TaskDragData | undefined;
+    if (!data) return;
+    if (data.type === "block") {
+      const node = nodes[event.active.id as string];
+      if (node) setActiveDrag({ kind: "block", node });
+    } else {
+      const item = checklistItemsById.get(event.active.id as string);
+      if (item) setActiveDrag({ kind: "task", item, sourceNodeId: data.nodeId });
+    }
+  };
+
+  // Only handles moving an item into a DIFFERENT container. Reordering
+  // within the same container is left entirely to SortableContext's own
+  // live-reflow (transform-based, no state change) — manually arrayMove-ing
+  // the same list here as well would fight that reflow and oscillate into
+  // an infinite render loop. Same-container order is only finalized once,
+  // in onDragEnd.
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const activeData = active.data.current as BlockDragData | TaskDragData | undefined;
+    if (!activeData) return;
+
+    if (activeData.type === "block") {
+      const activeId = active.id as string;
+      const overData = over.data.current as BlockDragData | GroupDropData | undefined;
+
+      setBlocksByGroup((prev) => {
+        const sourceKey = findBlockGroup(activeId, prev);
+        if (!sourceKey) return prev;
+
+        const targetKey =
+          overData?.type === "block"
+            ? findBlockGroup(over.id as string, prev)
+            : overData?.type === "group"
+              ? overData.groupKey
+              : null;
+        if (!targetKey || targetKey === sourceKey) return prev;
+
+        const draggedNode = nodes[activeId];
+        if (!draggedNode) return prev;
+        const targetDate = targetKey === "__no_date__" ? null : targetKey;
+        if (!targetDate) return prev;
+        if (!canMoveToDate(draggedNode, targetDate, false)) return prev;
+
+        const sourceIds = prev[sourceKey].filter((id) => id !== activeId);
+        const overIndex =
+          overData?.type === "block" ? prev[targetKey].indexOf(over.id as string) : -1;
+        const insertIndex = overIndex === -1 ? prev[targetKey].length : overIndex;
+        const targetIds = [...prev[targetKey]];
+        targetIds.splice(insertIndex, 0, activeId);
+        return { ...prev, [sourceKey]: sourceIds, [targetKey]: targetIds };
+      });
+    } else {
+      const activeId = active.id as string;
+      const overData = over.data.current as
+        | TaskDragData
+        | ChecklistEmptyDropData
+        | undefined;
+
+      setTasksByNode((prev) => {
+        const sourceNodeId = findTaskNode(activeId, prev);
+        if (!sourceNodeId) return prev;
+
+        const targetNodeId =
+          overData?.type === "task"
+            ? findTaskNode(over.id as string, prev)
+            : overData?.type === "checklist-empty"
+              ? overData.nodeId
+              : null;
+        if (!targetNodeId || targetNodeId === sourceNodeId) return prev;
+
+        const sourceIds = prev[sourceNodeId].filter((id) => id !== activeId);
+        const overIndex =
+          overData?.type === "task" ? (prev[targetNodeId] ?? []).indexOf(over.id as string) : -1;
+        const insertIndex = overIndex === -1 ? (prev[targetNodeId]?.length ?? 0) : overIndex;
+        const targetIds = [...(prev[targetNodeId] ?? [])];
+        targetIds.splice(insertIndex, 0, activeId);
+        return { ...prev, [sourceNodeId]: sourceIds, [targetNodeId]: targetIds };
+      });
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    const data = active.data.current as BlockDragData | TaskDragData | undefined;
+    setActiveDrag(null);
+    if (!data || !line) return;
+
+    if (data.type === "block") {
+      const activeId = active.id as string;
+      const finalKey = findBlockGroup(activeId, blocksByGroup);
+      if (!finalKey) return;
+
+      let finalIds = blocksByGroup[finalKey];
+      const overData = over?.data.current as BlockDragData | GroupDropData | undefined;
+      if (over && overData?.type === "block") {
+        const oldIndex = finalIds.indexOf(activeId);
+        const overIndex = finalIds.indexOf(over.id as string);
+        if (oldIndex !== -1 && overIndex !== -1 && oldIndex !== overIndex) {
+          finalIds = arrayMove(finalIds, oldIndex, overIndex);
+          setBlocksByGroup((prev) => ({ ...prev, [finalKey]: finalIds }));
+        }
+      }
+
+      const draggedNode = nodes[activeId];
+      const newDeadline = finalKey === "__no_date__" ? null : finalKey;
+      if (draggedNode && draggedNode.deadline !== newDeadline) {
+        updateNode(activeId, { deadline: newDeadline });
+      }
+      reorderRootNodes(line.id, finalIds);
+    } else {
+      const activeId = active.id as string;
+      const sourceNodeId = data.nodeId;
+      const finalNodeId = findTaskNode(activeId, tasksByNode) ?? sourceNodeId;
+      let finalIds = tasksByNode[finalNodeId] ?? [];
+
+      const overData = over?.data.current as TaskDragData | ChecklistEmptyDropData | undefined;
+      if (over && overData?.type === "task" && findTaskNode(over.id as string, tasksByNode) === finalNodeId) {
+        const oldIndex = finalIds.indexOf(activeId);
+        const overIndex = finalIds.indexOf(over.id as string);
+        if (oldIndex !== -1 && overIndex !== -1 && oldIndex !== overIndex) {
+          finalIds = arrayMove(finalIds, oldIndex, overIndex);
+          setTasksByNode((prev) => ({ ...prev, [finalNodeId]: finalIds }));
+        }
+      }
+
+      const finalIndex = finalIds.indexOf(activeId);
+      moveChecklistItem(
+        sourceNodeId,
+        finalNodeId,
+        activeId,
+        finalIndex === -1 ? finalIds.length : finalIndex,
+      );
+    }
+  };
 
   if (!line) return null;
 
@@ -313,89 +637,7 @@ export function ActivityView({ lineId }: { lineId: string }) {
     exitSelectMode();
   };
 
-  const days = line.rootNodeIds
-    .map((id) => nodes[id])
-    .filter((n): n is NonNullable<typeof n> => Boolean(n))
-    .sort((a, b) => {
-      if (!a.deadline) return 1;
-      if (!b.deadline) return -1;
-      return a.deadline.localeCompare(b.deadline);
-    });
-
-  // Cards sharing a date are grouped under one heading and stacked
-  // vertically, instead of flowing side-by-side with other dates. `days` is
-  // already date-sorted above, and Map preserves insertion order, so the
-  // groups come out in the same order.
-  const dayGroups: { key: string; label: string; items: LearningNode[] }[] = [];
-  const groupIndex = new Map<string, number>();
-  for (const day of days) {
-    const key = day.deadline ?? "__no_date__";
-    let idx = groupIndex.get(key);
-    if (idx === undefined) {
-      idx = dayGroups.length;
-      groupIndex.set(key, idx);
-      dayGroups.push({ key, label: dayLabel(day.deadline), items: [] });
-    }
-    dayGroups[idx].items.push(day);
-  }
-
   const { progress, total, completed } = getLineStats(line, nodes);
-  const todayIso = format(new Date(), "yyyy-MM-dd");
-
-  const canMoveToDate = (day: LearningNode, targetDate: string, sameDate: boolean) => {
-    if (sameDate) return true;
-    if (!day.deadline) return false;
-    if (getNodeProgress(nodes, day.id) >= 100) return false;
-    if (day.deadline < todayIso) return false;
-    if (targetDate < todayIso) return false;
-    return targetDate > day.deadline;
-  };
-
-  const handleDayDrop = (targetGroupKey: string, targetIndex: number) => {
-    if (!draggedDayId) return;
-
-    const draggedDay = nodes[draggedDayId];
-    const targetDate = targetGroupKey === "__no_date__" ? null : targetGroupKey;
-    if (!draggedDay || !targetDate) {
-      setDraggedDayId(null);
-      setDayDropTarget(null);
-      return;
-    }
-
-    const sameDate = draggedDay.deadline === targetDate;
-    if (!canMoveToDate(draggedDay, targetDate, sameDate)) {
-      setDraggedDayId(null);
-      setDayDropTarget(null);
-      return;
-    }
-
-    const group = dayGroups.find((item) => item.key === targetGroupKey);
-    if (!group) {
-      setDraggedDayId(null);
-      setDayDropTarget(null);
-      return;
-    }
-
-    const withoutDragged = group.items.map((item) => item.id).filter((id) => id !== draggedDayId);
-    const safeIndex = Math.max(0, Math.min(targetIndex, withoutDragged.length));
-    const reordered = [
-      ...withoutDragged.slice(0, safeIndex),
-      draggedDayId,
-      ...withoutDragged.slice(safeIndex),
-    ];
-
-    if (!sameDate) updateNode(draggedDayId, { deadline: targetDate });
-    reorderRootNodes(line.id, reordered);
-
-    setDraggedDayId(null);
-    setDayDropTarget(null);
-  };
-
-  const handleTaskDrop = (targetNodeId: string, targetIndex: number) => {
-    if (!draggedTask) return;
-    moveChecklistItem(draggedTask.nodeId, targetNodeId, draggedTask.itemId, targetIndex);
-    setDraggedTask(null);
-  };
 
   // Multiple blocks for the same date (even several "Today" cards) are
   // allowed on purpose — e.g. separate cards for a morning routine vs an
@@ -518,106 +760,59 @@ export function ActivityView({ lineId }: { lineId: string }) {
                 </Button>
               </div>
             </div>
-            <div className="flex items-start gap-4 overflow-x-auto px-1 pb-2">
-              {dayGroups.map((group) => (
-                <div key={group.key} className="w-72 shrink-0 sm:w-80">
-                  <h3 className="mb-2 text-sm font-medium text-muted-foreground">
-                    {group.label}
-                  </h3>
-                  <div className="flex flex-col gap-3">
-                    {group.items.map((day, index) => (
-                      <div key={day.id} className="space-y-3">
-                        <div
-                          onDragOver={(e) => {
-                            if (!draggedDayId) return;
-                            const draggedDay = nodes[draggedDayId];
-                            const targetDate =
-                              group.key === "__no_date__" ? null : group.key;
-                            if (!draggedDay || !targetDate) return;
-                            const sameDate = draggedDay.deadline === targetDate;
-                            if (!canMoveToDate(draggedDay, targetDate, sameDate)) return;
-                            e.preventDefault();
-                            setDayDropTarget({ groupKey: group.key, index });
-                          }}
-                          onDrop={(e) => {
-                            if (!draggedDayId) return;
-                            e.preventDefault();
-                            handleDayDrop(group.key, index);
-                          }}
-                          onDragLeave={() =>
-                            setDayDropTarget((curr) =>
-                              curr?.groupKey === group.key && curr.index === index
-                                ? null
-                                : curr,
-                            )
-                          }
-                          className={cn(
-                            "h-2 rounded transition-colors",
-                            dayDropTarget?.groupKey === group.key &&
-                              dayDropTarget.index === index
-                              ? "bg-brand/40"
-                              : "bg-transparent",
-                          )}
-                        />
-                        <DayCard
-                          node={day}
-                          color={line.color}
-                          selectMode={selectMode}
-                          selected={selectedIds.has(day.id)}
-                          onToggleSelect={() => toggleSelect(day.id)}
-                          draggedTask={draggedTask}
-                          onDayDragStart={(nodeId) => setDraggedDayId(nodeId)}
-                          onDayDragEnd={() => {
-                            setDraggedDayId(null);
-                            setDayDropTarget(null);
-                          }}
-                          onTaskDragStart={(nodeId, itemId) =>
-                            setDraggedTask({ nodeId, itemId })
-                          }
-                          onTaskDragEnd={() => setDraggedTask(null)}
-                          onTaskDrop={handleTaskDrop}
-                        />
-                      </div>
-                    ))}
-                    <div
-                      onDragOver={(e) => {
-                        if (!draggedDayId) return;
-                        const draggedDay = nodes[draggedDayId];
-                        const targetDate = group.key === "__no_date__" ? null : group.key;
-                        if (!draggedDay || !targetDate) return;
-                        const sameDate = draggedDay.deadline === targetDate;
-                        if (!canMoveToDate(draggedDay, targetDate, sameDate)) return;
-                        e.preventDefault();
-                        setDayDropTarget({
-                          groupKey: group.key,
-                          index: group.items.length,
-                        });
-                      }}
-                      onDrop={(e) => {
-                        if (!draggedDayId) return;
-                        e.preventDefault();
-                        handleDayDrop(group.key, group.items.length);
-                      }}
-                      onDragLeave={() =>
-                        setDayDropTarget((curr) =>
-                          curr?.groupKey === group.key &&
-                          curr.index === group.items.length
-                            ? null
-                            : curr,
-                        )
-                      }
-                      className={cn(
-                        "h-2 rounded transition-colors",
-                        dayDropTarget?.groupKey === group.key &&
-                          dayDropTarget.index === group.items.length
-                          ? "bg-brand/40"
-                          : "bg-transparent",
-                      )}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+              onDragCancel={() => setActiveDrag(null)}
+            >
+              <div className="flex items-start gap-4 overflow-x-auto px-1 pb-2">
+                {dayGroups.map((group) => {
+                  const ids = blocksByGroup[group.key] ?? group.items.map((d) => d.id);
+                  if (ids.length === 0) return null;
+                  return (
+                    <GroupColumn
+                      key={group.key}
+                      groupKey={group.key}
+                      label={dayLabel(group.key === "__no_date__" ? null : group.key)}
+                    >
+                      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                        <div className="flex flex-col gap-3">
+                          {ids.map((id) => {
+                            const day = nodes[id];
+                            if (!day) return null;
+                            const checklistIds =
+                              tasksByNode[id] ?? day.checklist.map((c) => c.id);
+                            const checklistOrder = checklistIds
+                              .map((cid) => checklistItemsById.get(cid))
+                              .filter((c): c is ChecklistItem => Boolean(c));
+                            return (
+                              <DayCard
+                                key={id}
+                                node={day}
+                                color={line.color}
+                                selectMode={selectMode}
+                                selected={selectedIds.has(id)}
+                                onToggleSelect={() => toggleSelect(id)}
+                                checklistOrder={checklistOrder}
+                              />
+                            );
+                          })}
+                        </div>
+                      </SortableContext>
+                    </GroupColumn>
+                  );
+                })}
+              </div>
+              <DragOverlay>
+                {activeDrag?.kind === "block" && (
+                  <BlockOverlay node={activeDrag.node} color={line.color} />
+                )}
+                {activeDrag?.kind === "task" && <TaskOverlay item={activeDrag.item} />}
+              </DragOverlay>
+            </DndContext>
           </>
         )}
       </div>
