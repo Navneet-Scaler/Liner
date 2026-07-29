@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format, isToday, isTomorrow, isPast, addDays } from "date-fns";
 import {
   DndContext,
@@ -358,18 +358,30 @@ function TaskOverlay({ item }: { item: ChecklistItem }) {
 function GroupColumn({
   groupKey,
   label,
+  isToday,
+  onTodayElement,
   children,
 }: {
   groupKey: string;
   label: string;
+  isToday: boolean;
+  onTodayElement: (el: HTMLDivElement | null) => void;
   children: React.ReactNode;
 }) {
   const dropId = `group-${groupKey}`;
   const dropData = useMemo<GroupDropData>(() => ({ type: "group", groupKey }), [groupKey]);
   const { setNodeRef } = useDroppable({ id: dropId, data: dropData });
 
+  const combinedRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      setNodeRef(el);
+      if (isToday) onTodayElement(el);
+    },
+    [setNodeRef, isToday, onTodayElement],
+  );
+
   return (
-    <div ref={setNodeRef} className="w-72 shrink-0 sm:w-80">
+    <div ref={combinedRef} className="w-72 shrink-0 sm:w-80">
       <h3 className="mb-2 text-sm font-medium text-muted-foreground">{label}</h3>
       {children}
     </div>
@@ -403,6 +415,15 @@ export function ActivityView({ lineId }: { lineId: string }) {
 
   const todayIso = format(new Date(), "yyyy-MM-dd");
 
+  // Today's column stays in chronological position (past days sit to its
+  // left, one slide away) but the view stays scrolled to it, so it's the
+  // first thing visible — re-anchored whenever the set of date groups
+  // changes (e.g. a past-dated block gets added after Today already exists).
+  const todayGroupElRef = useRef<HTMLDivElement | null>(null);
+  const handleTodayElement = useCallback((el: HTMLDivElement | null) => {
+    todayGroupElRef.current = el;
+  }, []);
+
   const days = useMemo(
     () =>
       (line?.rootNodeIds ?? [])
@@ -417,9 +438,10 @@ export function ActivityView({ lineId }: { lineId: string }) {
   );
 
   // Cards sharing a date are grouped under one heading and stacked
-  // vertically. Today always leads, regardless of past-dated blocks that
-  // would otherwise sort earlier — everything else keeps chronological
-  // order (past dates, then future dates), with undated blocks last.
+  // vertically. `days` is already date-sorted (past -> today -> future,
+  // undated last), so groups come out in that same chronological order —
+  // Today isn't pulled to the front here; instead the view auto-scrolls to
+  // it (see the effect below), so past days stay one slide-left away.
   const dayGroups = useMemo(() => {
     const groups: { key: string; items: LearningNode[] }[] = [];
     const groupIndex = new Map<string, number>();
@@ -433,21 +455,21 @@ export function ActivityView({ lineId }: { lineId: string }) {
       }
       groups[idx].items.push(day);
     }
-
-    const rank = (key: string) => {
-      if (key === "__no_date__") return 2;
-      if (key === todayIso) return 0;
-      return 1;
-    };
-    groups.sort((a, b) => {
-      const diff = rank(a.key) - rank(b.key);
-      if (diff !== 0) return diff;
-      if (a.key === "__no_date__") return 0;
-      return a.key.localeCompare(b.key);
-    });
-
     return groups;
-  }, [days, todayIso]);
+  }, [days]);
+
+  const hasTodayGroup = dayGroups.some((g) => g.key === todayIso);
+  // Re-anchor whenever which groups exist changes (a group added/removed
+  // shifts Today's position, e.g. a past-dated block gets added after Today
+  // already exists) — not just when Today itself first appears.
+  const groupKeySignature = dayGroups.map((g) => g.key).join("|");
+
+  useEffect(() => {
+    if (hasTodayGroup) {
+      todayGroupElRef.current?.scrollIntoView({ inline: "start", block: "nearest" });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [line?.id, groupKeySignature, hasTodayGroup]);
 
   const checklistItemsById = useMemo(() => {
     const map = new Map<string, ChecklistItem>();
@@ -483,6 +505,9 @@ export function ActivityView({ lineId }: { lineId: string }) {
     setSyncedSignature(syncSignature);
   }
 
+  // A block can be dragged forward — from the past or today onto today or
+  // any later date — but never backward into the past, and not once it's
+  // already done.
   const canMoveToDate = (
     day: LearningNode,
     targetDate: string,
@@ -491,7 +516,6 @@ export function ActivityView({ lineId }: { lineId: string }) {
     if (sameDate) return true;
     if (!day.deadline) return false;
     if (getNodeProgress(nodes, day.id) >= 100) return false;
-    if (day.deadline < todayIso) return false;
     if (targetDate < todayIso) return false;
     return targetDate > day.deadline;
   };
@@ -809,6 +833,8 @@ export function ActivityView({ lineId }: { lineId: string }) {
                       key={group.key}
                       groupKey={group.key}
                       label={dayLabel(group.key === "__no_date__" ? null : group.key)}
+                      isToday={group.key === todayIso}
+                      onTodayElement={handleTodayElement}
                     >
                       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
                         <div className="flex flex-col gap-3">
