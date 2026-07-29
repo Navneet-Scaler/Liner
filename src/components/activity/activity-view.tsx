@@ -404,6 +404,7 @@ export function ActivityView({ lineId }: { lineId: string }) {
   // first thing visible — re-anchored whenever the set of date groups
   // changes (e.g. a past-dated block gets added after Today already exists).
   const todayGroupElRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const handleTodayElement = useCallback((el: HTMLDivElement | null) => {
     todayGroupElRef.current = el;
   }, []);
@@ -442,25 +443,44 @@ export function ActivityView({ lineId }: { lineId: string }) {
     return groups;
   }, [days]);
 
-  // Scrolls to Today once when this line is opened, and once more the
-  // first time a Today block appears (e.g. clicking "Today" from the empty
-  // state). Deliberately NOT re-triggered by every later change — doing so
-  // fought the user's own scroll position, snapping the view back to Today
-  // any time any block was added anywhere and making Today feel like it was
-  // sliding around on its own.
+  // Keeps Today flush against the left edge of the scroll container — but
+  // only while the user hasn't scrolled away on their own. Re-checks
+  // whenever the set of date groups changes (e.g. a past-dated block gets
+  // added after Today already exists, which would otherwise leave Today
+  // stranded mid-row with a sliver of the previous group peeking in). We
+  // track the scrollLeft *we* last set; if the live scrollLeft still
+  // matches it, nothing has moved it since, so it's safe to re-flush. If it
+  // doesn't match, the user scrolled manually and we leave it alone.
   const hasTodayGroup = dayGroups.some((g) => g.key === todayIso);
-  const scrolledOnceRef = useRef(false);
+  const groupKeySignature = dayGroups.map((g) => g.key).join("|");
+  const lastAutoScrollLeftRef = useRef<number | null>(null);
 
   useEffect(() => {
-    scrolledOnceRef.current = false;
+    lastAutoScrollLeftRef.current = null;
   }, [line?.id]);
 
   useEffect(() => {
-    if (hasTodayGroup && !scrolledOnceRef.current && todayGroupElRef.current) {
-      todayGroupElRef.current.scrollIntoView({ inline: "start", block: "nearest" });
-      scrolledOnceRef.current = true;
-    }
-  }, [hasTodayGroup]);
+    const container = scrollContainerRef.current;
+    const target = todayGroupElRef.current;
+    if (!hasTodayGroup || !container || !target) return;
+
+    const untouchedSinceLastAutoScroll =
+      lastAutoScrollLeftRef.current === null ||
+      Math.abs(container.scrollLeft - lastAutoScrollLeftRef.current) < 2;
+    if (!untouchedSinceLastAutoScroll) return;
+
+    // scrollIntoView's alignment can land a few hundred px short of flush —
+    // compute the exact delta from live rects instead so Today's left edge
+    // lands exactly on the container's, with nothing peeking in from a
+    // prior group.
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const delta = targetRect.left - containerRect.left;
+    if (Math.abs(delta) < 2) return;
+
+    container.scrollLeft += delta;
+    lastAutoScrollLeftRef.current = container.scrollLeft;
+  }, [hasTodayGroup, groupKeySignature]);
 
   const checklistItemsById = useMemo(() => {
     const map = new Map<string, ChecklistItem>();
@@ -815,7 +835,10 @@ export function ActivityView({ lineId }: { lineId: string }) {
               onDragEnd={handleDragEnd}
               onDragCancel={() => setActiveDrag(null)}
             >
-              <div className="flex items-start gap-4 overflow-x-auto px-1 pb-2">
+              <div
+                ref={scrollContainerRef}
+                className="flex items-start gap-4 overflow-x-auto px-1 pb-2 [overflow-anchor:none]"
+              >
                 {dayGroups.map((group) => {
                   const ids = blocksByGroup[group.key] ?? group.items.map((d) => d.id);
                   if (ids.length === 0) return null;
@@ -854,6 +877,12 @@ export function ActivityView({ lineId }: { lineId: string }) {
                     </GroupColumn>
                   );
                 })}
+                {/* Guarantees room to scroll the last group fully flush-left
+                    — without this, the browser caps scrollLeft as soon as
+                    the last column is fully visible, which can strand it
+                    short of flush whenever the viewport is wider than one
+                    column. */}
+                <div aria-hidden className="w-screen shrink-0" />
               </div>
               <DragOverlay dropAnimation={DROP_ANIMATION}>
                 {activeDrag?.kind === "block" && (
