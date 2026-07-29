@@ -108,7 +108,7 @@ function TaskRow({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn("group flex items-start gap-2", isDragging && "opacity-30")}
+      className={cn("group relative flex items-start gap-2", isDragging && "z-10")}
     >
       <span
         {...attributes}
@@ -333,22 +333,6 @@ function BlockOverlay({ node, color }: { node: LearningNode; color: string }) {
       <p className="mt-1.5 truncate text-sm font-medium">
         {node.title || "Untitled"}
       </p>
-    </div>
-  );
-}
-
-function TaskOverlay({ item }: { item: ChecklistItem }) {
-  return (
-    <div className="flex w-64 scale-105 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-2xl ring-1 ring-black/10">
-      <Checkbox checked={item.done} disabled />
-      <span
-        className={cn(
-          "flex-1 truncate text-sm",
-          item.done && "text-muted-foreground line-through",
-        )}
-      >
-        {item.text || "Untitled task"}
-      </span>
     </div>
   );
 }
@@ -868,7 +852,6 @@ export function ActivityView({ lineId }: { lineId: string }) {
                 {activeDrag?.kind === "block" && (
                   <BlockOverlay node={activeDrag.node} color={line.color} />
                 )}
-                {activeDrag?.kind === "task" && <TaskOverlay item={activeDrag.item} />}
               </DragOverlay>
             </DndContext>
           </>
