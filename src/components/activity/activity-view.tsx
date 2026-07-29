@@ -442,18 +442,25 @@ export function ActivityView({ lineId }: { lineId: string }) {
     return groups;
   }, [days]);
 
+  // Scrolls to Today once when this line is opened, and once more the
+  // first time a Today block appears (e.g. clicking "Today" from the empty
+  // state). Deliberately NOT re-triggered by every later change — doing so
+  // fought the user's own scroll position, snapping the view back to Today
+  // any time any block was added anywhere and making Today feel like it was
+  // sliding around on its own.
   const hasTodayGroup = dayGroups.some((g) => g.key === todayIso);
-  // Re-anchor whenever which groups exist changes (a group added/removed
-  // shifts Today's position, e.g. a past-dated block gets added after Today
-  // already exists) — not just when Today itself first appears.
-  const groupKeySignature = dayGroups.map((g) => g.key).join("|");
+  const scrolledOnceRef = useRef(false);
 
   useEffect(() => {
-    if (hasTodayGroup) {
-      todayGroupElRef.current?.scrollIntoView({ inline: "start", block: "nearest" });
+    scrolledOnceRef.current = false;
+  }, [line?.id]);
+
+  useEffect(() => {
+    if (hasTodayGroup && !scrolledOnceRef.current && todayGroupElRef.current) {
+      todayGroupElRef.current.scrollIntoView({ inline: "start", block: "nearest" });
+      scrolledOnceRef.current = true;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [line?.id, groupKeySignature, hasTodayGroup]);
+  }, [hasTodayGroup]);
 
   const checklistItemsById = useMemo(() => {
     const map = new Map<string, ChecklistItem>();
