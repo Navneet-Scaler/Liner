@@ -7,12 +7,14 @@ import {
   DragOverlay,
   PointerSensor,
   closestCenter,
+  defaultDropAnimationSideEffects,
   useSensor,
   useSensors,
   useDroppable,
   type DragStartEvent,
   type DragOverEvent,
   type DragEndEvent,
+  type DropAnimation,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -63,6 +65,21 @@ type ChecklistEmptyDropData = { type: "checklist-empty"; nodeId: string };
 // on every render triggers an internal measure -> setState -> render loop.
 const BLOCK_DRAG_DATA: BlockDragData = { type: "block" };
 
+// A slower, "ease-out expo"-style curve reads as smoother/more deliberate
+// than dnd-kit's terser default for these card/task-sized reflows.
+const SORTABLE_TRANSITION = {
+  duration: 240,
+  easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+};
+
+const DROP_ANIMATION: DropAnimation = {
+  duration: 220,
+  easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: { active: { opacity: "0" } },
+  }),
+};
+
 type ActiveDrag =
   | { kind: "block"; node: LearningNode }
   | { kind: "task"; item: ChecklistItem; sourceNodeId: string }
@@ -85,7 +102,7 @@ function TaskRow({
 }) {
   const dragData = useMemo<TaskDragData>(() => ({ type: "task", nodeId }), [nodeId]);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: item.id, data: dragData });
+    useSortable({ id: item.id, data: dragData, transition: SORTABLE_TRANSITION });
 
   return (
     <div
@@ -163,7 +180,7 @@ function DayCard({
     progress < 100;
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: node.id, data: BLOCK_DRAG_DATA });
+    useSortable({ id: node.id, data: BLOCK_DRAG_DATA, transition: SORTABLE_TRANSITION });
 
   const emptyChecklistDropId = `checklist-empty-${node.id}`;
   const emptyChecklistData = useMemo<ChecklistEmptyDropData>(
@@ -303,7 +320,7 @@ function DayCard({
 function BlockOverlay({ node, color }: { node: LearningNode; color: string }) {
   const colors = getLineColorClasses(color);
   return (
-    <div className="w-72 rotate-2 rounded-xl border border-border bg-card p-4 shadow-2xl ring-1 ring-black/10 sm:w-80">
+    <div className="w-72 scale-105 rotate-2 rounded-xl border border-border bg-card p-4 shadow-2xl ring-1 ring-black/10 sm:w-80">
       <span
         className={cn(
           "rounded-full px-2 py-0.5 text-[10px] font-medium",
@@ -322,7 +339,7 @@ function BlockOverlay({ node, color }: { node: LearningNode; color: string }) {
 
 function TaskOverlay({ item }: { item: ChecklistItem }) {
   return (
-    <div className="flex w-64 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-2xl ring-1 ring-black/10">
+    <div className="flex w-64 scale-105 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 shadow-2xl ring-1 ring-black/10">
       <Checkbox checked={item.done} disabled />
       <span
         className={cn(
@@ -384,6 +401,8 @@ export function ActivityView({ lineId }: { lineId: string }) {
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
 
+  const todayIso = format(new Date(), "yyyy-MM-dd");
+
   const days = useMemo(
     () =>
       (line?.rootNodeIds ?? [])
@@ -398,7 +417,9 @@ export function ActivityView({ lineId }: { lineId: string }) {
   );
 
   // Cards sharing a date are grouped under one heading and stacked
-  // vertically. `days` is already date-sorted, so groups come out in order.
+  // vertically. Today always leads, regardless of past-dated blocks that
+  // would otherwise sort earlier — everything else keeps chronological
+  // order (past dates, then future dates), with undated blocks last.
   const dayGroups = useMemo(() => {
     const groups: { key: string; items: LearningNode[] }[] = [];
     const groupIndex = new Map<string, number>();
@@ -412,8 +433,21 @@ export function ActivityView({ lineId }: { lineId: string }) {
       }
       groups[idx].items.push(day);
     }
+
+    const rank = (key: string) => {
+      if (key === "__no_date__") return 2;
+      if (key === todayIso) return 0;
+      return 1;
+    };
+    groups.sort((a, b) => {
+      const diff = rank(a.key) - rank(b.key);
+      if (diff !== 0) return diff;
+      if (a.key === "__no_date__") return 0;
+      return a.key.localeCompare(b.key);
+    });
+
     return groups;
-  }, [days]);
+  }, [days, todayIso]);
 
   const checklistItemsById = useMemo(() => {
     const map = new Map<string, ChecklistItem>();
@@ -448,8 +482,6 @@ export function ActivityView({ lineId }: { lineId: string }) {
     setTasksByNode(nextTasks);
     setSyncedSignature(syncSignature);
   }
-
-  const todayIso = format(new Date(), "yyyy-MM-dd");
 
   const canMoveToDate = (
     day: LearningNode,
@@ -806,7 +838,7 @@ export function ActivityView({ lineId }: { lineId: string }) {
                   );
                 })}
               </div>
-              <DragOverlay>
+              <DragOverlay dropAnimation={DROP_ANIMATION}>
                 {activeDrag?.kind === "block" && (
                   <BlockOverlay node={activeDrag.node} color={line.color} />
                 )}
