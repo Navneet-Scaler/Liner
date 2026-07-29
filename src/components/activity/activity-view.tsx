@@ -471,11 +471,14 @@ export function ActivityView({ lineId }: { lineId: string }) {
 
     // scrollIntoView's alignment can land a few hundred px short of flush —
     // compute the exact delta from live rects instead so Today's left edge
-    // lands exactly on the container's, with nothing peeking in from a
-    // prior group.
+    // lands exactly on the container's inner (padded) edge. Landing it on
+    // the container's outer edge instead (ignoring padding) would scroll
+    // right past that padding, clipping the today ring's highlight, which
+    // needs that padding as clearance to render.
     const containerRect = container.getBoundingClientRect();
     const targetRect = target.getBoundingClientRect();
-    const delta = targetRect.left - containerRect.left;
+    const paddingLeft = parseFloat(getComputedStyle(container).paddingLeft) || 0;
+    const delta = targetRect.left - (containerRect.left + paddingLeft);
     if (Math.abs(delta) < 2) return;
 
     container.scrollLeft += delta;
